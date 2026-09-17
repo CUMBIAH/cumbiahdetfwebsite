@@ -1,2 +1,3 @@
 # cumbiahdetfwebsite
-A website for the analysis of data in the CUMBIAH detection function project. 
+
+A simple Quarto website for the analysis documents used in the CUMBIAH detection function project.

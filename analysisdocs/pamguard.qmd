@@ -1,0 +1,5 @@
+---
+title: "PAMGuard"
+description: "Placeholder page for PAMGuard analysis outputs."
+image: ../images/cumbiah-icon.svg
+---
