@@ -1,0 +1,84 @@
+/*-- scss:defaults --*/
+
+// CUMBIAH brand palette, sampled from images/250701_logo_cumbiah.png
+$cumbiah-blue:        #467491;   // the porpoises
+$cumbiah-blue-bright: #00a1e5;   // the wave and bubbles
+$cumbiah-orange:      #e26600;   // the wordmark
+
+$cumbiah-blue-dark:   #2b4657;
+$cumbiah-blue-light:  #8fb3c7;
+
+$body-bg: #1b2229;
+$body-color: #d7dee4;
+
+$primary:   $cumbiah-blue;
+$secondary: $cumbiah-orange;
+$info:      $cumbiah-blue-bright;
+
+// The slate blue is too dark to read on a dark background, so links use the
+// bright blue from the wave instead (5.6:1 against $body-bg).
+$link-color:       $cumbiah-blue-bright;
+$link-hover-color: #5cc6f2;
+
+$navbar-bg: $cumbiah-blue-dark;
+$navbar-fg: #ffffff;
+
+$code-color: #8fd8f5;
+
+/*-- scss:rules --*/
+
+.navbar-brand img {
+  max-height: 42px;
+  width: auto;
+}
+
+// Every PAMGuard screenshot is a light-UI capture, and so is every MATLAB
+// figure. Left bare they float as bright rectangles, so give them a frame
+// that reads as a panel. Scoped by path so it never touches the logo or the
+// listing thumbnails.
+img[src*="/images/pamguard/"],
+img[src*="/images/locatelanders/"] {
+  background-color: #ffffff;
+  border: 1px solid rgba(143, 179, 199, 0.35);
+  border-radius: 4px;
+}
+
+.card img[src*="/images/pamguard/"],
+.card img[src*="/images/locatelanders/"] {
+  border: 0;
+  border-radius: 0;
+}
+
+.quarto-grid-item.card {
+  background-color: #222a32;
+  border-color: rgba(143, 179, 199, 0.25);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
+  &:hover {
+    border-color: $cumbiah-blue-bright;
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 161, 229, 0.2);
+  }
+}
+
+figcaption.figure-caption {
+  color: $cumbiah-blue-light;
+}
+
+.sidebar nav[role="doc-toc"] ul > li > a.active,
+.sidebar nav[role="doc-toc"] ul > li > a:hover {
+  color: $cumbiah-blue-bright;
+  border-left-color: $cumbiah-blue-bright;
+}
+
+// The placeholder icon is square, so `cover` slices the top and bottom off the
+// circle. Letterbox it instead; the screenshots still fill the frame.
+.quarto-grid-item img.thumbnail-image[src$=".svg"] {
+  object-fit: contain;
+  padding: 0.5rem;
+}
+
+// Listing card titles
+.quarto-grid-item .listing-title,
+.quarto-grid-item .card-title {
+  font-weight: 700;
+}

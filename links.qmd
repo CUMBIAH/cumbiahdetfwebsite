@@ -1,0 +1,30 @@
+---
+title: "Useful Links"
+description: "Software, code libraries and resources used in the CUMBIAH detection function project."
+toc: true
+tbl-colwidths: [30, 70]
+---
+
+A collection of the software, code libraries and resources used throughout the analyses on this site.
+
+## CUMBIAH
+
+| Link | Description |
+|--------------------------------|--------------------------------------------------------------------|
+| [CUMBIAH on GitHub](https://github.com/CUMBIAH) | The CUMBIAH organisation on GitHub, where project code and documentation are hosted. |
+| [cumbiah_landers_mat](https://github.com/CUMBIAH/cumbiah_landers_mat) | MATLAB library for working with the CUMBIAH hydrophone-cluster lander data. |
+
+## PAMGuard
+
+| Link | Description |
+|--------------------------------|--------------------------------------------------------------------|
+| [PAMGuard](https://www.pamguard.org) | Open source software for acoustic detection, classification and localisation of marine mammals. |
+| [PAMGuardMatlab](https://github.com/PAMGuard/PAMGuardMatlab) | MATLAB library for importing PAMGuard binary files and databases. |
+| [pypamguard](https://github.com/PAMGuard/pypamguard) | Python library for reading PAMGuard output. |
+| [PamBinaries](https://github.com/TaikiSan21/PamBinaries) | R library for reading PAMGuard binary files. |
+
+## Data tools
+
+| Link | Description |
+|--------------------------------|--------------------------------------------------------------------|
+| [sudunarchiver](https://github.com/Sound-Net/sudunarchiver) | Tool for unpacking and converting SUD archive files to wav. |

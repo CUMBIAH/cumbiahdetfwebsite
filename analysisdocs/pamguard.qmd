@@ -1,5 +1,475 @@
 ---
-title: "PAMGuard"
-description: "Placeholder page for PAMGuard analysis outputs."
-image: ../images/cumbiah-icon.svg
+title: "Tracking Porpoises with PAMGuard"
+description: "Detecting, localising and exporting harbour porpoise clicks from hydrophone-cluster landers in PAMGuard."
+order: 1
+author: "Jamie Macaulay"
+image: ../images/pamguard/image45.png
+toc: true
+toc-depth: 3
+number-sections: true
+lightbox: true
+fig-align: center
 ---
+
+::: {.callout-note appearance="simple"}
+| | |
+|---|---|
+| **Dataset DOI** | -- |
+| **Last tested** | 11/05/2026 |
+| **PAMGuard version** | 2.02.18+ |
+| **Data folder** | `lander1/data` |
+:::
+
+# Introduction
+
+Baltic harbour porpoises are a protected subspecies under threat from habitat degradation and bycatch in static fishing nets. Monitoring their distribution and abundance is crucial for guiding conservation and regulatory efforts. Porpoises are usually undemonstrative animals, and the Baltic is a large area, much of which has a very low density of porpoises. The strategy for abundance estimation has therefore been to use passive acoustic monitoring; specifically, the use of long-term autonomous recorders distributed across the entire Baltic and monitoring for a year.
+
+Estimating porpoise density from PAM devices requires an estimation of the probability of detection, *P*\*[^pstar]. This involves calculating how many clicks or porpoise-positive seconds might be missed over a monitored area. However, estimating P is not straightforward and with static PAM devices like CPODs an external experiment is usually required. These experiments vary widely, such as using a theodolite to track porpoises around a CPOD, drones and aerial surveys or, as in this case, an array of hydrophones for acoustically tracking porpoises.
+
+In this tutorial, we will use PAMGuard to determine positional information of harbour porpoises from compact clusters of hydrophones deployed to track porpoises around a garden of CPODs. The hydrophone clusters are arranged in 30 m triangles -- forming a tracking array. As a porpoise approaches the tracking array, each cluster provides a bearing to detected clicks. Where the bearings cross is the position of the porpoise. As porpoises click regularly, the tracking array can build up a 3D geo-referenced track of a porpoise. Comparing the distance of the track to whether the porpoise was detected on the CPODs next to the array allows for an estimation of the probability of detection. This then provides a crucial piece of the puzzle for abundance estimation from the CPODs deployed across the Baltic.
+
+The aim of this tutorial is to process data from the hydrophone clusters, identify harbour porpoise encounters, extract geo-referenced bearings to porpoise clicks, and export the data to R and MATLAB for further analysis.
+
+[^pstar]: *P* is required for distance sampling methods. SECR is another potential method that requires multiple devices to be ensonified by a porpoise. It also, essentially, creates a probability of detection; however, this is more integrated within the SECR framework rather than an external parameter.
+
+# Detecting porpoises from raw sound files
+
+Before we can localise the position of porpoises we first have to detect and classify their tell-tale narrow band high frequency (NBHF) clicks. PAMGuard has a comprehensive click detection and classification module that can be used for this. In this first section we will run the click detector on raw acoustic data, extract clicks and classify to porpoise.
+
+First make sure that the latest version or the version of PAMGuard this tutorial was last tested on is installed. Open PAMGuard (Normal mode). When prompted, create a new. psfx settings file. Name it and save it somewhere sensible You will be presented with a blank canvas.
+
+![When PAMGuard is first started it is essentially a blank canvas. You have to add modules to construct an acoustic workflow – this is called the “data model”.](../images/pamguard/image1.png){#fig-1}
+
+
+PAMGuard is a modular program. i.e. you must tell it what you want it to do, and what algorithms you want run by adding specific modules for each signal processing/detection task. Once this has been completed the module configuration is saved in the settings file and can then be reopened without having to set anything up again i.e. the process of constructing the workflow only needs to happen once.
+
+The first module we need is a something which acquires the acoustic data from the recording device or sound files. Click ***File → Add Modules → Sound Processing → Sound Acquisition**.*
+
+The sound acquisition module will now have been added. Click ***Settings → Sound* *Acquisition*.** In the drop down. In the ***Data Source Type*** drop down menu select ***Audio file folder or multiple files*.** Now click ***Select Folder or Files*** and browse to the folder (named ***audio***) containing sud files from the 4 channel SoundTraps
+
+*Note: Sud files contain metadata, detection data, orientation data and compressed audio from SoundTraps. SoundTrap host software can decompress sud files however this can increase the size of the dataset by up to four times. PAMGuard can now read sud files directly which means, in many cases, there is no need to decompress them, saving time and a lot of hard disk space!*
+
+The peak-to-peak voltage range of a SoundTrap is 2V. Enter this in the ***Peak-to-Peak*** voltage range box to make sure PAMGuard calibrates acoustic measurements properly i.e. to ensure that received amplitudes in dB are correct. Click OK.
+
+![the Sound Acquisition module is used to load up a folder of sud file.](../images/pamguard/image2.png){#fig-2 width="450"}
+
+
+Now that the Sound Acquisition module is added PAMGuard knows the sample rate and number of channels of the data to be processed. This will make setting up the next modules easier by ensuring that PAMGuard initially uses sensible default values for each new module. Note that if the sample rate or channels are incorrect something has gone wrong.
+
+You may receive a warning that PAMGuard needs to open the array manager because the number of channels does not match the number of hydrophones. Click ***Ok*** to open the array manager window. Select Import... and import the ***lander1_Denmark_array.paf*** file in the data folder -- this contains the hydrophone positions for the array. You may wish to enter some information on the device ***Instrument Type*** and ***Instrument Id*** (e.g. SoundTrap serial number) and then Click ***Ok*** to save and close the array manager.
+
+![the Array Manager defines where hydrophone are positioned and the calibration value of each hydrophone.](../images/pamguard/image3.png){#fig-3}
+
+
+On that note, opening the project information window ***Settings → Project Information*** and filling out some basic metadata on what you are doing is good practice and saves headaches when revisiting datasets.
+
+Many of the detector or soundscape modules in PAMGuard require Fast Fourier Transform (FFT) data -- in this example we will be using an FTT module as an input for a long term spectral average (LTSA). Click ***File → Add Modules → Sound Processing → FFT (Spectrogram Engine)***. Open the module settings by selecting ***Settings → ** **FFT (Spectrogram Engine) settings...***
+
+![The settings for the FFT (Spectrogram) Module.](../images/pamguard/image4.png){#fig-4 width="470"}
+
+
+Make sure all 4 channels are selected an increase the hop size to 8192 samples. In this configuration the FFT is only used for visualisation purposes and not as an input into an analysis algorithms. A larger hop size reduces processing requirements and so speeds up data analysis, especially for multi-channel high frequency data such as this.
+
+Viewing the FFT data requires a display. To create a spectrogram display, first add a display tab - Click ***File → Add Modules → Displays → User Displays*.** You will see that a new display tab has been added but the contents are empty. Click ***User Display → New Spectrogram Display*.** A dialog box will appear. Make sure the ***Number of Panels*** is 4, click ***One panel per channel*** and hit ***Ok***.
+
+![Parameters for the spectrogram display.](../images/pamguard/image5.png){#fig-5 width="517"}
+
+
+A long-term spectral average (LTSA) is an excellent way to visualise a soundscape over long time periods. An LTSA is essentially a spectrogram which allows a manual analyst to quickly glance at long time periods and pick out interesting sections of data and is useful in pretty-much every analysis configuration. To add the LTSA module click ***File → Add Modules → Sound Processing → Long Term Spectral Average.***
+
+![Long-term spectral average settings.](../images/pamguard/image6.png){#fig-6 width="523"}
+
+
+Open the LTSA settings by click ***Settings → Long Term Spectral Average*...** and ensure Channel 0 is ticked. A measurement time of 5 seconds is usually enough.
+
+Finally, to detect porpoises, we need to use a click detection algorithm. Porpoises produce narrow band high frequency echolocation clicks centred at around 130kHz to hunt and sense their surroundings (they also use the same sounds to communicate). The click detector module in PAMGuard can detect and classify these clicks.
+
+Set up Click Detector using default settings for basic porpoise ***Settings → Add Modules → Detectors → Click Detector.*** This will automatically add the click detections displays.
+
+![The click detector has a bespoke display which is automatically added when the PAMGuard click module is added.](../images/pamguard/image7.png){#fig-7}
+
+
+The click detector is a three-stage process - first any transient sounds of interest are detected, if multi-channel then time delays are calculated, and a bearing localised and finally a classifier is applied to classify sounds that are of most interest. Here we are only interested in porpoises so we will set the detection stage to only process the porpoise frequency band which will help reduce false positives and make data analysis easier.
+
+First go to **Settings → Click Detector → Digital Pre Filter...** Set the high pass to 2,000Hz - this means that the small snippets of sound saved for a positive detection will be filtered making it easier to manually identify porpoise clicks.
+
+![The pre-filter initially filters the data before clicks are saved.](../images/pamguard/image8.png){#fig-8}
+
+
+The most important detection parameter to get right is the trigger filter. The trigger filter pre filters data before it passed to the detection algorithm. Unfiltered data can result in a large number of detections and will potentially mean the algorithm misses clicks. Most echolocation clicks have high frequency components and so it sensible to set the filter band to higher frequencies. Because we are interested in porpoise we can set the filter band to very high frequencies between 100 and 150 kHz. Go to **Settings → Click Detector → Digital Trigger Filter....** and select a ***Band Pass*** filter between 80,000 and 150,000 Hz. Change the ***Filter Type*** to ***Chebychev*** and make the **Filter order** 4.
+
+![The trigger filter filters the data before the detection algorithm but saved sounds snippets of clicks are only filtered by the pre-filter. To make sure the automated detection process is effective it is important to set the correct filter parameters – here we filter the data so that we are only looking at frequencies within the porpoise frequency band. This minimises other transients in different frequency bands being detected.](../images/pamguard/image9.png){#fig-9}
+
+
+Next go to ***Settings → Click Detector → Detection Parameters***. Click the Source Tab and ensure that all the channels are selected and there is only one Group. If all the channels are part of the same group, then time delay measurements are automatically calculated between the hydrophones for each click which allows bearings to be localised. Also select the ***Trigger*** tab and ensure all channels are used for the trigger -- this just means that any channel which detects a click will result in a click being saved.
+
+![The general detection parameters define which channels should be processed by the click detector.](../images/pamguard/image10.png){#fig-10 width="514"}
+
+
+Setting up the detection stage is now complete; however, this will detect any transient sound within the selected frequency band e.g. dolphin clicks, propellor cavitation etc. Whilst these are all useful to provide context for the data, it is also important to identify which transients might be porpoise clicks i.e. a porpoise classifier is needed. The in-built classifier will analyse each detection and determine whether it is a porpoise or not. ***Settings → Click Detector → Click Classification***. Click ***New***. Click ***Set Defaults*** and choose ***Porpoise***. Press ***Ok*** and make sure ***Run classification online*** is ticked and the classifier is enabled. You will see that the default symbol for a detection classified as a porpoise is a red triangle ▲. You can change it, but it's what is commonly used for both data collection and analysis. (Check Nyqvist frequency, if PamGuard complains about frequency range)
+
+::: {#fig-11 layout-ncol=2}
+![](../images/pamguard/image11.png)
+
+![](../images/pamguard/image12.png)
+
+Settings for the click classifier. The click classifier is used to identify detected transients which may be porpoise echolocation clicks.
+:::
+
+We want the click detector display to show the classified porpoise clicks as red triangular icons. There are many ways data can be displayed -for example PAMGuard can colour clicks according to annotation, their peak frequency and/or which hydrophone they were detected on etc. The way clicks are coloured is handled by ***Symbol Options.*** Right click on the main click display and select ***More Symbol Options...*.** The ***Modifiers*** section shows the order in which symbols are coloured. You can disable colouring a symbol a certain way by deselecting ***Fill Colour*** and ***Line Colour.*** The order in which symbols are coloured can also be changed by right clicking on the folder icon and selecting ***Move earlier*** or ***Move later.*** Set the symbols to the screenshot below to show classified and manually annotated clicks - annotated click colours will override classified clicks colours here
+
+![PAMGuard’s symbol manager is used to define how detection in different displays are coloured. In this case clicks can be coloured by channel, classification result, whether they have been annotated or not and/or peak frequency.](../images/pamguard/image13.png){#fig-12 width="346"}
+
+
+Select **Ok** to close the classifier settings - the click detector is now set up. Save the configuration (***File → Save Configuration***)
+
+# Orientation Data
+
+The SoundTrap ST640 contains a 3-axis magnetometer and accelerometer. This means that it is possible to calculate the heading, pitch and roll of the SoundTrap. PAMGuard provides a handy module to do this, that reads the magnetometer and accelerometer data directly from sud files as they are processed and then calculated the heading pitch and roll. This is usefull for two reasons,
+
+1.  It can indicate whether a lander moved at any point during a deployment.
+
+2.  The heading, pitch, and roll can be used to geo-reference bearing in PAMGuard.
+
+To add the module go to ***File → Add Modules → Sensors → SoundTrap SWV Sensor Import***. This will add the module. Next, open the settings by going to **Settings → *SoundTrap SWV Sensor Import* --** this will bring up the sensor pane. Click on the ***Defaults*** and select ***ST600*** (the only options for now)***.***
+
+![The settings dialog for the SoundTrap ST600 magnetometer/accelerometer module. The first tab set the offsets and constants to use in the sensor fusion algorithm. The second panel can be used to add data to the array manager allowing for detections to be rotated.](../images/pamguard/image14.png){#fig-13}
+
+The SoundTrap SWV Sensor module can also save interpolated orientation to the Hydrophone Array Manager -- allowing detections to be geo-referenced, i.e. a bearing in the click bearing time display becomes the true bearing relative to north instead of a relative bearing to the array. These data are saved to the database, while the raw data is saved to binary files; to minimise the database size, it's often a good idea to average the sensor values, especially for a lander that is sitting on the seabed and so should not be moving. Set the ***Output interval (s)*** to 10s and make sure ***Add orientation to hydrophone array*** is selected. Close the SoundTrap SWV Sensor settings by clicking Ok.
+
+PAMGuard will now extract orientation data from the sud files as it processes.
+
+# Saving data
+
+PAMGuard saves data in two ways, using a database and custom "Binary" files. The database holds information such as GPS data, settings and noise data. Ideally PAMGuard would only use one type of storage, however detector data, such as clicks and whistles/moans, especially for large datasets, can be substantial in size, up to tens of gigabytes. This volume of data slows down databases which is why PAMGuard uses a much more efficient storage system, Binary files. Although Binary files are much faster, they are not human-readable like databases and so require software libraries to open them.
+
+Add both the database and binary storage options to PAMGuard. Click ***File → Add Modules → Utilities → Database***. Click ***File → Database → Database Selection ...*** Click ***Browse/ Create\...*** and select a location and name for your database (make sure it's somewhere you can find it again).
+
+![The database settings dialog. This allows uses to select a database file which PAMGuard uses to save metadata.](../images/pamguard/image15.png){#fig-14}
+
+
+Next add the binary storage**. *File → Add Modules → Utilities → Binary Storage*.** You will need to specify a *folder* that the binary files will be written to. Click ***File → Binary Storage Options...***
+
+![The binary file storage dialog. Binary files store detection and soundscape data e.g. detected whistles and moans etc.](../images/pamguard/image16.png){#fig-15 width="563"}
+
+
+In the Binary Storage Options dialog box click ***Browse*** and select a storage folder. Again make sure you remember the location (usually it's sensible to put the binary folder in a parent folder also containing your database and .psfx settings file).
+
+If you click ***File → External Data Storage...*** you will now see that ***PAMGuard*** has selected which data outputs will be saved to which type of storage.
+
+![The storage options dialog. Storage options is a manager that allows users to define which data are saved to the database and which data are saved to binary files. It is best to leave this as default.](../images/pamguard/image17.png){#fig-16 width="421"}
+
+
+![The data model shows the acoustic workflow in PAMGuard. This is a relatively simple configuration but for very large configurations the data model can be extremely useful to identify how data flows are ordered.](../images/pamguard/image18.png){#fig-17}
+
+Once everything has been set up it useful to open the data model and check the acoustic workflow is what you expect. Go to ***File → Show Data Model\...*** it should look like @fig-17 and is a relatively simple configuration by PAMGuard standards.
+
+Save your configuration and hit the red run button . PAMGuard will now start processing the data. As it does so check the spectrogram tab and the click detector tab -- this will help identify any errors- for example if any of the channels are not working etc.
+
+# Viewing the results
+
+Once data has finished processing PAMGuard viewer mode can be used to view the results, reprocess some parts of the data, manually annotated and export results.
+
+Open PAMGuard viewer mode. Select the database you used for processing and the correct folder that binary files were saved to (very important).
+
+If opening for the first time or if more data have been added to either the database or the binary PAMGuard will want to create a datagram. This is an overview of all data collected which allows users to navigate to interesting section in the dataset. The Datagram Bin size is the time bin in which data are averaged. The default bin size of 600 seconds is fine in this instance. Lower bin sizes increase the resolution of the datagram, however, requires more memory.
+
+![The datagram bin size dialog. PAMGuard summarises different detections streams into a data map. The size of the summary time bins is the bin size.](../images/pamguard/image19.png){#fig-18}
+
+
+Click ***Ok***. If the datagram has not already been constructed PAMGuard will iterate through all the binary files creating a summary of each data type i.e.,LTSA and clicks in this case This can take some time.
+
+![The progress bar indicates the progress in generating a data map.](../images/pamguard/image20.png){#fig-19 width="495"}
+
+
+Once processing is complete, PAMGuard the data map can be viewd in the ***Data Map*** tab. This shows the datagram for each data stream. Here we can see (from top to bottom) the the Sound Files processed, detected clicks, click noise data and the LTSA. Most data maps are simply the number of data units per time period but some modules, such as the click detector and LTSA show more complex datagrams which are 3D time, frequency, amplitude, or histogram plots. Colours indicate the amount of data within each time/frequency, with white as nothing and then blue → green → yellow → orange → red showing more data. You can click on a datagram and use the mouse wheel to change the colour limits.
+
+![The data map display in PAMGuard viewer mode. This shows a summary of the different data streams in PAMGuard over large temporal scales. Here it shows the data streams from modules added in the previous section i.e. the click detector and an LTSA.](../images/pamguard/image21.png){#fig-20}
+
+The ***Data Map*** also allows users to change the time scale. Move the slider in the ***Scales*** pane to increase or decrease the time scale. Use the time scale to zoom into a particular section of data or zoom out and view the entire dataset.
+
+The click datagram also has a feature whereby users can view the number of classified clicks per unit time. Right the display and untick ***Show datagram.*** The Click Detector data panel will now show a time series of black and red bars -- the black indicates the number of detected clicks and red indicates the number of detected porpoise clicks.
+
+![The data map with the click detector showing the number of detected porpoise clicks per unit time. Short spikes in clicks are usually when porpoises were detected.](../images/pamguard/image22.png){#fig-21 width="655"}
+
+
+Navigating through the click data map it should become apparat that there are spikes in the number of dected porpoise clicks. This usually indicates a porpoise. Right click on one of these spikes and selected ***Centre Data Here*.** PAMGuard will then load up a section of data so it can be viewed on a display. Click the ***Click Detector*** display. You should notice that there are quite a from classified clicks which are clearly from porpoises.
+
+![The Scales slider can be used to change time scales. Zooming into a day of clicks which are usually false detections. Spikes in the number of clicks indicate a porpoise. Note that the y scale is the number of clicks and this is a log scale.](../images/pamguard/image23.png){#fig-22}
+
+
+![Once an interesting area has been identified in the data map those data are shown in the click display. Here porpoise clicks are plotted against bearing. Red triangles indicate clicks that have been classified as porpoise.](../images/pamguard/image24.png){#fig-23}
+
+
+You can set how much data PAMGuard loads up in a period by clicking the down arrow in the bottom right of the spectrogram display. This will bring up a small window. Make the **Duration** 30 minutes. PAMGuard will then load up 30-minute chunks of data each time you move to a new section of the dataset. The reason for this is that as the datasets are so large, PAMGuard cannot load all detections into memory. Keeping time chunks relatively short reduces load times and memory requirements, making PAMGuard faster and more stable. Once you want to move on to another section you can either go back to the Data Map and right click **Centre Data Here,** click the down arrow and manually enter a **Start Time** or click the double arrows forward or back to go to the next or previous section of data.
+
+![This generic navigation dialog is used in almost all display in viewer model to allow users to navigate to new sections of data.](../images/pamguard/image25.png){#fig-24 width="364"}
+
+
+![The viewer-mode navigation toolbar.](../images/pamguard/image26.png){width="261"}
+
+From left to right, the toolbar controls are:
+
+-   **Spinner** -- changes the time period of data shown in the display.
+
+-   **Play** -- plays through the data as if it were being collected in real time.
+
+-   **Double arrows** -- load up the preceding or next 10-minute section of data into memory.
+
+-   **Dialog button** -- opens a dialog to set how much data is loaded into memory. Also allows a user to jump to a specific time period.
+
+Now use the navigation system to explore the dataset. Use the ***Data map*** to identify sections where there might be porpoise and check for detections. Note that the click display can be switched between bearing and amplitude by right click on the display -- while bearing is useful for looking at porpoise click trains it is often useful to use the amplitude display to distinguish whether and event is a porpoise or boat echosounder. Make sure you are totally happy using all the navigation and display tools before proceeding to the next section.
+
+# Viewing orientation data
+
+The sensor data is shown as heading pitch and roll in the datagram as shown in @fig-25. Sensor data can be viewed in the Time Display. Add a new user display by selecting ***File → Add Modules → Display → User Display.*** Select the new tab that appears and, at in the top men select ***Display → new Time Base Display fx.***
+
+# Reprocessing clicks
+
+PAMGuard viewer mode can reprocess detection data - you cannot re-detect clicks from raw data, but you can reclassify, redo bearings, recalculate time details etc. this can be very useful when exploring the dataset and for optimising automated classifiers.
+
+## Reclassifying clicks
+
+![](../images/pamguard/image27.png){width="22" fig-alt="Reanalyse clicks toolbar icon"} If you navigate to a porpoise detection you may notice that there are quite a few missed porpoise clicks. This is because the classifier has been set to identify a porpoise click only if all channels pass the click classifier. If we set to just one channel that needs to detect a click or average over channels, then the classifier becomes less sensitive and a lot of these missed clicks will be classified correctly. Open the click reprocessing window either by selecting the icon in the Click detector display or going to ***Settings → Click Detector → Reanalyse Clicks...***
+
+![Click reprocessing is very useful and allows users to redo classifications and localisations.](../images/pamguard/image28.png){#fig-25 width="463"}
+
+
+Select ***Reclassify clicks*** and press the settings icon. This will bring up the click classification table. Double click the Porpoise classifier. Change the ***Channel*** options to ***Use mean parameter values of all channels*** and click ***OK.***
+
+![Changing the number of channels that require a positive classification result from 4 to using the averaged value across all channels makes the classifier more robust and misses less clicks.](../images/pamguard/image29.png){#fig-26}
+
+
+We have a large dataset, so we need to tell PAMGuard to process through all the clicks using the new click classifier -- it's not instant. Anytime we change settings we have to repeat this process. In the top ***Data options*** menu select ***Loaded Data*** to process only the currently loaded clicks and press ***Start***. PAMGuard will now run all clicks loaded into memory. To reprocess the entire dataset select **All Data** or to reprocess a specific time period select ***Select Data.***
+
+Once PAMGuard has finished you will notice that some of the click classifications have changed and many of the false negative detections will now be correctly classified as porpoise.
+
+![Click classifications before changing the classifier settings – note the missed clicks at the end of the click train.](../images/pamguard/image30.png){#fig-27}
+
+
+![Click classifications after changing the classifier settings – note the missed clicks are now mostly correct although a few are still missed.](../images/pamguard/image31.png){#fig-28}
+
+
+## Reprocessing bearings {#sec-reprocessing-bearings}
+
+Localised bearings are calculated form time delay measurements between clicks arriving at different channels on the array. However, because porpoise clicks are relatively narrow band, they can be quite difficult to cross-correlate and time delay measurements are often error prone leading to incorrect bearings. PAMGuard has a number of signal processing tools which can help improve the localisation of porpoise clicks. Open the click reprocessing dialog and select the settings button next to ***Recalculate click delays.***
+
+![The click reprocessing window can also be used to recalculate time delay measurments and click bearings.](../images/pamguard/image32.png){#fig-29 width="403"}
+
+
+Click on the Porpoise ***Change*** button and set up the Delay measurement to filter data between 100 kHz and 150 kHz, up sample x4 and restrict the length to 200 samples so we don't try and cross-correlate echoes.
+
+![PAMGuard allows users to define how click time delays are calculated for different click classifications.](../images/pamguard/image33.png){#fig-30}
+
+
+Reprocess the loaded data and you should see the bearing improve considerably.
+
+![Bearings before additional filtering and up-sampling.](../images/pamguard/image34.png){#fig-31}
+
+
+![Bearings after additional filtering and up-sampling. Note the new click train is more defined and it’s easier to define to mark out a bearing path.](../images/pamguard/image35.png){#fig-32}
+
+
+If you're really interested in the maths behind this, try reading our (very boring) paper on the NBHF time delays.
+
+> Gillespie, D. and Macaulay, J. (2019) 'Time of arrival difference estimation for narrow band high frequency echolocation clicks', *The Journal of the Acoustical Society of America*, 146(4), pp. EL387--EL392. Available at: <https://doi.org/10.1121/1.5129678>.
+
+Once happy with the click bearings settings reprocess the entire dataset using the All Data option in @fig-28.
+
+![Reprocessing the entire dataset. Click classifications and bearings will be re-classified.](../images/pamguard/image36.png){#fig-33 width="481"}
+
+
+# Annotating clicks
+
+Now that we have classified clicks, we can efficiently navigate to interesting sections of the dataset and manually annotate events. This can be done click-by-click, or by storing multiple clicks belonging to the same event in a single move.
+
+Go to an interesting section of data using the ***Data Map*** as described above, then look at the bearing/time display in the Click Detection tab. Scroll through until you find detections that looks like they should be saved as porpoise detections (anything including red triangle, although beware false positives and false negatives). The figure here shows a porpoise click train which needs to be marked and stored to the database.
+
+![A click train that needs to be annotated.](../images/pamguard/image37.png){#fig-34}
+
+
+To see the classified clicks better (in this case porpoise clicks - the red triangles) you can untick the box at the top of the window ***Unclassified clicks**.* The bearing time display will now show only the classified clicks (depending on your settings you may have more options i.e. echoes, other species, etc.). Right click on a click, check that the waveform and power spectrum indicate a convincing porpoise detection and, if so, select ***Label click\...*.**
+
+![The unclassified (black) clicks have been removed by unticking **Unclassified Clicks** at the top of the display. A single click can be annotated by right clicking on it and selecting **Label click...**.](../images/pamguard/image38.png){#fig-35}
+
+This will bring up the event dialogue box. Here you can create a new event by selecting the ***New Event*** button or add the click to an existing event by selecting any event from the Event list (the Estimated number of animals and Comment fields are not compulsory, so only fill them in if you find them useful). Note that when you first create an event the Click event dialog will have no evet types in the ***Event type/species*** selection. Click on the cog icon next to the selection box and this will bring up a dialog where you can set event types. For example, some useful event types would be
+
+PP: a porpoise
+
+BC: boat cavitation transients
+
+ES: echosounder.
+
+![When creating an event there are options to select the event type and add comments.](../images/pamguard/image39.png){#fig-36 width="345"}
+
+
+![Event types can easily be created in the Lookup Editor dialog.](../images/pamguard/image40.png){#fig-37 width="625"}
+
+
+![Once an event type has been created it is selectable whenever an event is created or edited.](../images/pamguard/image41.png){#fig-38 width="388"}
+
+
+![A list of manually annotated events that have been created so far.](../images/pamguard/image42.png){#fig-39}
+
+
+Multiple clicks can be selected using the advanced area selection tool. Double click on the bearing/ time display. This will bring up a dotted line which you can use to draw around a group of clicks. By joining up the ends of the dotted line the selected area should appear grey. Double click mouse to start selection or drag square with mouse.
+
+![Clicks can also be annotated by defining an area. All clicks within the area will be added to an event.](../images/pamguard/image43.png){#fig-40}
+
+All the clicks within this grey area can be added to an event by right clicking inside the grey area and selecting ***Label Clicks*** or use the key short cut *\'Ctrl+L\'*. Note that there are also other options available such as removing clicks from a certain event etc. So if you made a mistake, don´t panic.
+
+If you want to check through the clicks of your boxed up event before saving it (to check that all the clicks are good enough to include, and to help to decide what event type you will use), you can either use the non-outlined play button which runs automatically through all clicks or use the left and right arrow keys to go through them once the clicks are selected.
+
+![Once clicks are annotated, they change colour assuming this has been selected in the symbol manager.](../images/pamguard/image44.png){#fig-41}
+
+When marking an event, also look at the non-classified clicks surrounding it. They might also be porpoise clicks (just not classified). Decide if you should add them to your event.
+
+Click trains should be cleaned up by removing non-directional clicks and echoes, so that a clear directional line of clicks is achieved. This will enable a more accurate localisation.
+
+## Amplitude selector
+
+The amplitude selector is effectively a filter. It allows you to choose only clicks above a certain amplitude threshold. This is useful if your data show extensive background noise or echoes and you are trying to extract a "tight track" showing the bearing change for the primary click detections.
+
+![The amplitude selector can be a useful way to remove unwanted clicks from the bearing time display.](../images/pamguard/image45.png){#fig-42}
+
+Scale
+
+A window for the amplitude selector will open showing an amplitude histogram and some descriptive statistics from the clicks shown in the current window. Check the 'Display only clicks over set amplitude' box, then enter a sensible threshold level in ***Min Amplitude*** box which can be judged by viewing the histogram. A red line appears in the histogram which you can drag with the mouse changing the amplitude threshold and allowing fine tuning. The clicks shown in the BT display change accordingly. When the amplitude selector is active a message appears at the bottom of the bearing time display which shows how many clicks are not displayed with the amplitude threshold currently chosen.
+
+![After the amplitude selector has been used only clicks above a certain amplitude are displayed.](../images/pamguard/image46.png){#fig-43}
+
+When using Amplitude Selector you will need to note down the settings if you want to keep a record of them as it is currently not saved automatically to the database, when the event is saved.
+
+## Manually altering a bearing
+
+It can be difficult for automated algorithms to calculate time delays of porpoise clicks, even using the improved methods described in @sec-reprocessing-bearings. When manually annotating clicks, it is sometimes useful to manually check the time delays. Select a click and then in the waveform display drag the mouse to select two direct path clicks on two channels.
+
+![To manually change time delays, select and drag the mouse over the direct path waveforms of two channels in the click waveform display.](../images/pamguard/image47.png){#fig-44 width="391"}
+
+
+Once click sections on two channels have been selected the Delay correction dialog will appear. You can drag the black bar in the correlation graph to match the waveforms as you see fit -- once happy, click OK and the click bearing will automatically update. Note that for 4 channel data there are six time delay combinations -- all of them may potentially need altered to update the bearing accurately.
+
+Note: if you recalculate the click bearings automatically all manual time delay changes will be lost!
+
+![The time delay correction dialog allow users to manually set the time delay between two clicks.](../images/pamguard/image48.png){#fig-45 width="518"}
+
+
+## Manual annotation standards
+
+Because we are localising and click-train algorithms are currently not as well developed as the bioacoustics community would like, it will be necessary to take a semi-automated approach to processing data i.e. we will need to manually annotate all porpoise click trains using the tools described in the previous sections. It is important to have standard for doing this, especially as we need to match click trains between landers i.e. we have to have a consistent way defining what an event is and labelling events correctly between landers.
+
+Some standards we would recommend
+
+-   Start a new event if there have bene no porpoise clicks within a track for 30 seconds.
+
+-   Give each event a serial number in the comment section. For events which match on different arrays, set the same serial number.
+
+# Exporting bearings
+
+There are currently three ways in which data can be exporting in PAMGuard, programmatically through MATLAB ([PAMGuardMatlab](https://github.com/PAMGuard/PAMGuardMatlab)), R ([PamBinaries](https://github.com/TaikiSan21/PamBinaries)) (Python coming soon), to an external database such as Tethys or directly via the exporter.
+
+Exporting using a programming language is very flexible but requires programming know-how and Tethys databases are a whole separate tutorial. The in-built exporter in PAMGuard is easy to use and allows users to export to various file formats and filter data by time or type without the need for any code. Users can then go on to process the data in whichever way they require.
+
+To open to the exporter, go to ***File → Export Data...*** This opens the exporter dialog.
+
+## Exporting Events for R
+
+![PAMGuard has a powerful exporter which allows users to export data to different formats.](../images/pamguard/image49.png){#fig-46 width="363"}
+
+
+Here we are going to export all manually annotated clicks to an R data frame. Select the R icon and select ***Marked Click_Events_Click Detector.*** In exactly the same way as the click reprocessing dialog, users can select whether to export only loaded data, the entire dataset or selected time periods. Here we are going to export all annotated data so select ***All Data***. Click ***Browse...*** to select a folder location for the data and begin exporting by select ***Start***. Once the export has finished there should be a time stamped .RData file in the output folder that was selected. Import this into R Studio by typing (replacing the path with your newly created .RData file)
+
+``` r
+load("/Users/myusername/PAM_2019_11_14_125025_Tracked_Events.RData")
+```
+
+into the console. This will import the data frame which consists of a list of all the marked-out events. Each event contains a sub list of all the clicks in the event and metadata on the times etc. for the event itself and for each click. In the next section you will use these data to make plots of porpoise behaviour around the net.
+
+![Once data are loaded in R, they can be explored using R Studio. The data frame contains a list of events. Each event contains sub detections which are the clicks that belong to that event. Each sub detection contains metadata on the clicks such as time, bearing, time delays and the waveform.](../images/pamguard/image50.png){#fig-47}
+
+
+## Exporting Events for MATLAB (and Python)
+
+Exporting data to MATLAB or Python is exactly the same as R except the MATLAB icon should be selected. Note that Python can read .mat files using **pymatreader** for example.
+
+![Exporting events for MATLAB is exactly the same as R, except you select the MATLAB icon instead of R icon.](../images/pamguard/image51.png){#fig-48 width="362"}
+
+
+Loading a .mat file into MATLAB is very easy. Either drag and drop it into the workspace or use
+
+``` matlab
+clicks = load("/Users/myusername/PAM_2019_11_14_125025_Tracked_Events.RData")
+```
+
+The clicks variable will appear as a structure in the workspace which can then be accessed programmatically.
+
+# Comparing to CPOD data to SoundTrap recordings
+
+Each lander also had an associated CPOD. It is useful to visualise the CPOD data alongside the lander data, especially for investigation time offsets and getting a feel for detectability.
+
+In this section, we will import CPOD detections so that they can be viewed alongside the acoustic recordings on each lander. To do this we have to first add the CPOD module. Go to ***File → Add Modules → Sensors → CPOD Detector Import.*** Open the module by selecting ***Settings → CPOD Importer...***
+
+![The CPOD module dialog is simple. Select CPOD or FPOD files or a folder and click Import to import the data.](../images/pamguard/image52.png){#fig-49 width="407"}
+
+The CPOD import dialog allows users to either select files or a folder of files. The files should be CPOD or FPOD click or click train files i.e. CP1/FP1 and/or CP3/FP3 files respectively. The user can either use the files button to select specific data files or the folder button to a load a folder of files. The way PAMGuard works is that it will import raw detection data first (i.e. CP1 and FP1 files) and, if click trains are available (i.e. CP3 and FP3 files), it will add click train data to the raw detections as "super detections" which are saved to the database. If the CP1 file is not available or selected, then PAMGuard will import click trains from the CP3 or FP3 files and the raw detections from the click trains in CP3 files -- this will mean only detections which are part of clicks trains will be imported (as that's the only data in the file). In other words importing CPOD or FPOD data follows this logic;
+
+-   If CP1 or FP1 files only then import raw detections -- no click trains will be available.
+
+-   If CP3 or FP3 files only then import click trains and raw detection of from those trains
+
+-   If CP1/FP1 and CP3/FP3 are both available then import detections and click trains -- match the detections from click train files to the raw detections file.
+
+PAMGuard saves the raw CPOD or FPOD click detections to binary files (just like clicks and whistles) and saves the click trains to the database. Click train data are therefore human readable and CPOD detections can be extracted using the PAMGuard-MATLAB and (hopefully soon) PAMBinaries R library.
+
+::: {.callout-note}
+## A note on CPOD/FPOD data
+
+*CPODs and FPODs are the longest lasting high frequency acoustic monitoring devices that are available, by a very long way. They are also less expensive than many competing devices. The way this is achieved is by compressing data -- CPODs record click detections, not raw sound. The data saved per click detection is extremely sparse -- i.e. consists of a few measurements such as bandwidth, peak frequency, etc. CPOD detections therefore have no waveforms (like you might see from a SoundTrap for example). FPODs do record some waveform information, but only for a small subset of clicks.*
+:::
+
+Here we will import just the CP3 files i.e. the click trains detected on the CPOD. Select the file button and select the **CPOD**. The dialog should show there are 2 files you could import (CP1 and CP3). Just select the CP3 file. Click Import and wait for processing to finish. This may take a little while, so good moment for a cup of tea.
+
+![Loading data from CPODs can take a few minutes.](../images/pamguard/image53.png){#fig-50 width="360"}
+
+## Viewing CPOD data in PAMGuard
+
+Once the data have been processed the data map will reprocess and in the ***DataMap*** display the CPOD data will appear in the ***CPOD_Detector_Import_CP1*** and ***CPOD Click Trains*** data map. Note that the CPOD a lot more data than our recording sample.
+
+![Once the CPOD data has loaded it will be displayed on the data map.](../images/pamguard/image54.png){#fig-51 width="646"}
+
+
+The detections data map shows the frequency distribution of clicks. If you zoom in (using the scale settings as above) then porpoise detections will appear as a more narrow bandwidth section of data.
+
+![A zoomed-in CPOD detection datagram. The narrow-bandwidth band is porpoise; the broader band above it is dolphin clicks (or noise).](../images/pamguard/image55.png){width="406"}
+
+To view the data we will need to an appropriate display. To add a display first go to ***File → Add Modules → Display → User Display*** to add a new display tab. Click on the new tab, then select ***User Display*** in the top menu and select **New time base data display fx.** This will add a new blank time display. The time base display can display almost any data stream in PAMGuard; here we wish to view CPOD so click the ***+ Data*** button and add ***CPOD Detector Import, CPOD Detector ImportCP1*** data. Next click on the three bars in at the bottom right of the display; this will bring up PAMGuard's viewer mode navigation settings.
+
+![PAMGuard’s generic viewer mode navigation dialog is also used in the time base display. This allows users to set the time and amount of data loaded into memory. As a reminder, Start Time indicates the start of the loaded data. Duration is the amount if data that is loaded and step size is the data overlap when the forward or backward arrows are used to quickly skip to the next section of data. Note that duration is NOT the visible data in the display – that is controlled using the time spinner at the bottom right of the display or the scroll bar.](../images/pamguard/image56.png){#fig-52 width="342"}
+
+
+Select 1 hour of data in the ***Duration*** Menu -- CPOD detections are highly compressed data and so 2 or even 12 hours of data can be easily loaded. Click OK on ***Navigation Options*** dialog and then click on the ***Data Map*** tab, right click on an interesting section of data and select ***Centre data here.*** This will load the CPOD data in the Time Display FX.
+
+![The CPOD data after initially loading. The default for the Time Base Display is to show the CPOD detections as black dots if CP1 files or coloured by clicks trains if CP3 data is available. This is not the best way to visualise CPOD detections and so we will need to change a few settings in the display to make a more intuitive plot.](../images/pamguard/image57.png){#fig-53}
+
+
+Initially the CPOD data will be displayed on an amplitude display much like the Click Detection in the click display. However, this is not a particularly informative way to display CPOD detections. To better visualise the data, we will colour each detection by frequency and display amplitude as a stem plot instead of scatter points. ***First select Amplitude (stem) dB re 1μPa*** on the left settings pane. Next click the cog at the right of the display to bring up the display options. Click on ***Peak Frequency*** to expand the settings and then select both **Border** and **Fill.** CPOD detections will now be coloured by their peak frequency between the ***Min freq.*** and ***Max freq.*** limits. To use the same colour scheme as CPOD.exe software, select the HSV colour scheme (see @fig-41) and set the upper limit to around ***170000 Hz**.*
+
+::: {.callout-note}
+## A note on PAMGuard's universal symbol chooser
+
+*PAMGuard has a symbol chooser which is used across all displays (e.g. click detector, map spectrogram, Time Base Display etc.). Symbol colouring sounds simple but it can get quite complicated -- for example how to do we colour clicks? First by classification, then by event, then by click detection? Or perhaps by peak frequency, or annotation e.g. deep learning prediction? The idea behind the symbol chooser is to have a universal method to colour symbols. It works by starting off with a **Default Symbol.** The default symbol is then sequentially coloured or altered by a series of symbol choosers which can be enabled or disabled by the user as needed. The available symbol choosers depend on the data stream. For example, clicks can be coloured by click classification, event and peak frequency. If another module such as a click train detector or detection grouper is added then the additional options will be added.*
+:::
+
+![Colouring CPOD detections by peak frequency and displaying as a stem plot instead of scatter points provides a more intuitive representation of data and is more similar to the data visualisation used in CPOD.exe .](../images/pamguard/image58.png){#fig-54}
+
+
+Finally, visualisation can be easier with a grey background so click on the cogs at the top of the left-hand pane and select a darker background colour.
+
+![The background colour can be altered using the advanced settings menu – a dark grey background provides better contrast but it is up to the user what they prefer.](../images/pamguard/image59.png){#fig-55 width="654"}
+
+
+Have a go visualising the CPOD data in other ways -- for example try plotting as Linear Amplitude and Frequency.
+
+Next, we want to compare CPOD data to click data. To do this, we will add another panel to the graph by clicking the ***+*Plot** button at the top of the time display. This will add a new plot. Click ***+Data*** and add ***Click Detector, Clicks.*** You may need to move to a new section of data to
+
+![](../images/pamguard/image60.png)

@@ -1,0 +1,64 @@
+/*-- scss:defaults --*/
+
+// CUMBIAH brand palette, sampled from images/250701_logo_cumbiah.png
+$cumbiah-blue:        #467491;   // the porpoises
+$cumbiah-blue-bright: #00a1e5;   // the wave and bubbles
+$cumbiah-orange:      #e26600;   // the wordmark
+
+$cumbiah-blue-dark:   #33566c;
+$cumbiah-blue-light:  #8fb3c7;
+$cumbiah-blue-pale:   #eaf1f6;
+
+$primary:   $cumbiah-blue;
+$secondary: $cumbiah-orange;
+$info:      $cumbiah-blue-bright;
+
+$link-color:       $cumbiah-blue;
+$link-hover-color: $cumbiah-blue-dark;
+
+$navbar-bg: $cumbiah-blue;
+$navbar-fg: #ffffff;
+
+$code-color: $cumbiah-blue-dark;
+
+/*-- scss:rules --*/
+
+.navbar-brand img {
+  max-height: 42px;
+  width: auto;
+}
+
+// Listing cards pick up the brand blue on hover
+.quarto-grid-item.card {
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
+  &:hover {
+    border-color: $cumbiah-blue;
+    box-shadow: 0 0.25rem 0.75rem rgba(70, 116, 145, 0.18);
+  }
+}
+
+// Figure captions
+figcaption.figure-caption {
+  color: $cumbiah-blue-dark;
+}
+
+// Active entry in the "On this page" sidebar
+.sidebar nav[role="doc-toc"] ul > li > a.active,
+.sidebar nav[role="doc-toc"] ul > li > a:hover {
+  color: $cumbiah-blue;
+  border-left-color: $cumbiah-blue;
+}
+
+// The placeholder icon is square, so `cover` slices the top and bottom off the
+// circle. Letterbox it instead; the screenshots still fill the frame.
+.quarto-grid-item img.thumbnail-image[src$=".svg"] {
+  object-fit: contain;
+  padding: 0.5rem;
+}
+
+// Listing card titles
+.quarto-grid-item .listing-title,
+.quarto-grid-item .card-title {
+  font-weight: 700;
+}

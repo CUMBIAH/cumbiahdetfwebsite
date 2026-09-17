@@ -1,5 +1,6 @@
 ---
 title: "Localise Porpoises"
 description: "Placeholder page for porpoise localisation analyses."
+order: 3
 image: ../images/cumbiah-icon.svg
 ---

@@ -4,7 +4,8 @@ page-layout: full
 listing:
   contents: analysisdocs
   type: grid
-  sort: "title"
+  image-height: 260px
+  sort: "order"
   fields:
     - image
     - title
@@ -17,7 +18,7 @@ listing:
 
 ::: {.columns .v-center}
 ::: {.column width="20%"}
-![](images/cumbiah-icon.svg){fig-alt="CUMBIAH icon" width="140"}
+![](images/250701_logo_cumbiah.png){fig-alt="CUMBIAH icon" width="140"}
 :::
 ::: {.column width="80%"}
 Welcome to the CUMBIAH detection function analysis website. This site brings together Quarto analysis documents for the project in one place so they can be browsed and published online.

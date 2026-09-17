@@ -3,13 +3,20 @@ project:
   output-dir: _site
 
 website:
-  title: "CUMBIAH DETF"
-  favicon: images/cumbiah-icon.svg
+  title: "CUMBIAH DETECTION FUNCTION"
+  favicon: images/cumbiah-favicon.png
   navbar:
+    logo: images/cumbiah-mark-light.png
+    logo-alt: "CUMBIAH logo"
     left:
       - href: index.qmd
         text: Home
+      - href: links.qmd
+        text: Useful Links
 
 format:
   html:
+    theme:
+      light: [cosmo, theme/light.scss]
+      dark: [darkly, theme/dark.scss]
     toc: false
