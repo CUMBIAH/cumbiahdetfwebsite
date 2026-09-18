@@ -23,12 +23,12 @@ fig-align: center
 
 # Introduction
 
-Each CUMBIAH lander carries a small cluster of four hydrophones, and that cluster measures the 3D bearing to any sound it detects. If two or more landers detect the same porpoise click, the bearings can be triangulated and the porpoise located. None of that works, though, unless we know two things about every lander to within a metre or two and a degree or two:
+Each CUMBIAH lander carries a small array of four hydrophones, and that array measures the 3D bearing to any sound it detects. If two or more landers detect the same porpoise click, the bearings can be triangulated and a detected porpoise located. None of that works, though, unless we know two things about every lander to within a metre or two and a degree or two:
 
-1.  **Where it is.** A lander is dropped over the side and falls 17 m through a tidal stream. It does not land where the boat's GPS said it went in -- in deployment 1 the landers ended up between 4 m and 20 m from their drop positions.
-2.  **Which way it is pointing.** The lander lands on whatever the seabed gives it, so its heading, pitch and roll are unknown. A bearing measured by the cluster is relative to the cluster, and until the orientation is known it cannot be turned into a bearing relative to north.
+1.  **Where it is.** A lander is dropped over the side and falls 17 m through the water column. It does not land where the boat's GPS said it went in -- in deployment 1, Denmark, for example, the landers ended up between 4 m and 20 m from their drop positions.
+2.  **Which way it is pointing.** The lander lands at a random orientation on the seabed, so its heading, pitch and roll are unknown (although we assume it's relatively flat). A bearing measured by the hydrophone array is relative to the platform, and until the orientation is known it cannot be turned into a bearing relative to north.
 
-To solve both, the boat ran a set of calibration lines over the landers straight after each deployment. The propeller cavitation is a loud, broadband transient that every lander detects thousands of times, and the boat's own GPS tells us where each of those transients was made. That gives us a large set of (bearing measured at the lander, known source position) pairs, and from those the position and orientation of the lander can be recovered with a grid search.
+To solve both, the boat ran a set of calibration maneuvers over the landers after each deployment. The propeller cavitation is a loud, broadband transient that every lander detects thousands of times, and the boat's own GPS tells us where each of those transients was made. That gives us a large set of (bearing measured at the lander, known source position) pairs, and from those the position and orientation of the lander can be recovered with a grid search.
 
 This tutorial covers the whole chain:
 
@@ -37,7 +37,10 @@ This tutorial covers the whole chain:
 -   checking a single lander with `locate_platform.m` and reading the diagnostic plots (@sec-locate-platform);
 -   running `locate_array.m` to locate every lander in a deployment and save the result (@sec-locate-array).
 
-The calculation itself lives in `locateplatform.m`. It draws nothing -- everything the plots need comes back in a `results` struct -- so `locate_platform.m` is the script you actually run, and `locate_array.m` is the same calculation in a loop.
+The calculation itself lives in `locateplatform.m`. It plots nothing -- everything the plots need comes back in a `results` struct -- so `locate_platform.m` is the script you actually run, and `locate_array.m` is the same calculation in a loop.
+
+# Pre-requisites
+
 
 # How the grid search works {#sec-theory}
 
@@ -69,29 +72,27 @@ The SoundTrap's real time clock is synchronised to GPS on deck before the lander
 
 ## What a grid search actually is
 
-If you have not met a grid search before, it is worth a paragraph, because the rest of this page is really just three grid searches in a row.
+If you have not used a grid search before, it is worth a paragraph, because the rest of this page is really just three grid searches in a row.
 
-There is no formula you can feed the bearings into that hands back the lander's position. With six unknowns, thousands of noisy measurements and angles that wrap around at ±180°, working backwards algebraically is a nightmare. So we do not. Instead we work *forwards*, thousands of times over, and pick the answer that fits best.
+There is no formula you can feed the bearings into that hands back the lander's position. With six unknowns, thousands of noisy measurements and angles that wrap around at ±180°, working backwards algebraically is a nightmare. So we do not. Instead we solve ther *forward* problem, thousands of times over, and pick the answer that fits best.
 
-The recipe is:
+The process is this:
 
-1.  **Propose an answer.** Lay an imaginary grid over the seabed -- say every metre across an 80 × 80 m square centred on the drop position -- and take one grid point as a candidate: *suppose the lander is right here*.
+1.  **Propose an answer.** Lay an imaginary grid over the seabed -- say every meter across an 80 × 80 m square centered on the drop position -- and take one grid point as a candidate: *suppose the lander is right here*.
 2.  **Predict what we should have seen.** If the lander really were at that point, then for every cavitation transient we know exactly what angle it *should* have measured, because we know where the boat was from its GPS.
 3.  **Score the answer.** Compare those predicted angles with the angles the lander actually measured. The closer they match across all the clicks, the better this candidate position is. That score is the chi-squared (@sec-chi2).
 4.  **Repeat for every grid point** and keep the one with the best score.
 
-It is brute force, and unashamedly so. The appeal is that it needs nothing clever: you only need to be able to predict the measurement for a given answer, which is straightforward geometry, and the computer can afford to try tens of thousands of answers.
+It is brute force, and unashamedly so. It can also be scaled up dimesniosinally, so instead of each grid point being a laititude, longitdue, it can be 5D grid of latitude,longitude,heading, pitch and roll. The appeal of this approach is that it is relatively simple: you only need to be able to predict the measurement for a given answer, which is straightforward geometry, and a normal consumer computer easily has the processor power to try tens of thousands of answers.
 
 ::: {.callout-tip}
 ## The surface is worth more than the answer
 
-Because every grid point gets a score, the output is not a single position -- it is a whole **surface** of scores, and that surface is where most of the diagnostic value lives. Plot it (as in @fig-coarse-grid and @fig-fine-grid) and you can see at a glance how trustworthy the answer is:
+Because every grid point gets a score, the output is not a single position -- it is a whole **surface** of scores, and that surface is an important way to diagnose whether the caclutated location is true. Plot it (as in @fig-coarse-grid and @fig-fine-grid) and you can see at a glance whether the solution is likely valid.
 
 -   A **deep, narrow bowl** with the minimum in the middle means the data pin the lander down tightly. Move a few metres in any direction and the fit gets noticeably worse.
 -   A **broad, flat basin** means many positions fit the data almost equally well. The "best" point is then barely better than its neighbours, and you should not believe it to the metre.
 -   **Two separate bowls**, or a minimum pressed against the edge of the grid, means something is wrong -- usually that the true answer is outside the grid, or that the calibration events include something that is not cavitation.
-
-A biologist's analogy: a grid search is the acoustic equivalent of gridding a study site into quadrats and sampling every one, rather than trying to deduce where the animals are from first principles. You end up with a map of how good each cell is, and the shape of that map tells you whether your "best" cell is genuinely the best or just the luckiest of many similar ones.
 :::
 
 The one real cost is that the work grows with the number of grid points multiplied by the number of clicks. That is why the search is done coarse-then-fine (@sec-passes) rather than at 1 m resolution over the whole sea area, and why the bearings are thinned first.
@@ -105,7 +106,7 @@ A chi2 of 1 means the residuals are about the size of the assumed errors -- whic
 ::: {.callout-tip}
 ## Bearings are thinned before the search
 
-Propeller cavitation produces an enormous number of detections, and as noted above the work scales with grid points × clicks. `locateplatform` therefore keeps at most `maxbearings` bearings per second (default 5), spread evenly through each second, which is plenty to constrain six parameters and keeps the search to minutes rather than hours.
+Propeller cavitation produces an enormous number of transient detections, and, as noted above, the processing power required scales with grid points × clicks. `locateplatform` therefore keeps at most `maxbearings` bearings per second (default 5), spread evenly through each second, which is plenty to constrain six parameters and keeps the search to minutes rather than hours.
 :::
 
 ## Three passes {#sec-passes}
@@ -185,7 +186,7 @@ In the event dialog, create a new event and set the ***Event type/species*** to 
 -   **Several events are fine.** `locateplatform` pools every `bc` event in the day folder, so one event per calibration line is the natural way to work.
 :::
 
-Once the events are saved, the annotated database (`lander<N>_Denmark_database_annotated.sqlite3`) holds the calibration events and the binary store holds the clicks themselves. That is everything the MATLAB side needs.
+Once the events are saved, the annotated database (`lander<N>_<Site>_database_annotated.sqlite3`, e.g. `lander1_Denmark_database_annotated.sqlite3`) holds the calibration events and the binary store holds the clicks themselves. That is everything the MATLAB side needs.
 
 # Checking one lander: `locate_platform.m` {#sec-locate-platform}
 
@@ -195,38 +196,181 @@ The MATLAB side needs rather more on the path than the `cumbiah_landers_mat` rep
 
 | Requirement | What it is needed for |
 |--------------------|----------------------------------------------------|
-| [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat) | The library itself: `locateplatform`, `getlanderdeploymentinfo`, `getlanderdatapaths`, `getlandersuperfolder` |
+| [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat) | The library itself: `locateplatform`, `getlanderdeploymentinfo`, `getlanderpaths` and the per-country functions behind them, `getlandersuperfolder` |
 | [PAMGuardMatlab](https://github.com/PAMGuard/PAMGuardMatlab) | The `pgmatlab` package, used to read the click waveforms and bearings out of the PAMGuard binary store |
-| SMRU `soundnetlocalisation` utilities | `grdsrch_pos`, `grdsrch_pos_hpr`, `st_loc_chi2`, `interpsrcloc`, `plot_chi2_surf`, `plot_clk_src_bearings` -- the grid search and its plotting helpers |
-| SMRU shared utilities | `latLong2meters`, `latLong2bearing`, `getsuperfolder`, `getdefaultcols` |
+| [soundnetloc_mat](https://github.com/Sound-Net/soundnetloc_mat) | `grdsrch_pos`, `grdsrch_pos_hpr`, `st_loc_chi2`, `interpsrcloc`, `plot_chi2_surf`, `plot_clk_src_bearings` -- the grid search and its plotting helpers, `latLong2meters`, `latLong2bearing`, `getsuperfolder`, `getdefaultcols` |
 | MATLAB **Database Toolbox** | `sqlite`, used to read the `bc` events out of the PAMGuard database |
 | MATLAB **Mapping Toolbox** | `readgeoraster`, `mapcrop`, `projfwd` -- only needed by `locate_array.m` for the bathymetry |
-| The Denmark data folder | Resolved by `getlandersuperfolder`, which sits on `getsuperfolder`. `getsuperfolder` maps the machine's hostname to the Dropbox root, so a new machine needs a case adding to it |
 
-::: {.callout-warning}
-## If MATLAB cannot find the data
+## Data management
 
-`getlanderdatapaths` does not check that any path exists -- a lander that has not been processed yet returns the path its data *will* have. If the localisation fails with a missing-file error, check `data.sqlitedB`, `data.binaryfolder` and `data.gpsfile` against what is actually on disk before looking anywhere else.
-:::
+The main script takes a struct of data paths - it needs to know where your PAMGuard dtaabse, binary file store, GPS data is along with metadata like drop location. Because we have up to nine landers per country, it is a good idea to create some datamanagement functions. Instead of hard coding a struct each time, you input a country, a lander and a deployment, and a function works out where everything is and what dtaa paths are needed. The management functions should be roughly the same in every country: one folder per country, a settings spreadsheet describing every deployment, one folder per lander holding its PAMGuard output, and a pair of MATLAB functions that know how to read them. The examples below use the Danish array (nine landers in the Great Belt, three deployments), because Denmark is the only country implemented so far. Germany and Sweden have placeholder functions waiting to be filled in -- see @sec-One-folder-per-country.
 
-## Running it
+### How a lander is looked up
 
-Open `locate_landers/locate_platform.m`, set the lander and the deployment at the top, and run it:
+Two functions are called from the scripts, and each one passes the work on to a function for the right country:
+
+| Function | What it does | How it finds the country |
+|--------------------|---------------------------|---------------------------|
+| `getlanderdeploymentinfo(lander, deployment, country)` | Turns a lander number and a deployment number into a start time, an end time, a SoundTrap serial and the hydrophone IDs | The `country` input. A `switch` sends `'Denmark'`, `'Germany'` or `'Sweden'` to `getdanishlanderdeploymentinfo`, `getgermanlanderdeploymentinfo` or `getswedishlanderdeploymentinfo` |
+| `getlanderpaths(serial, time)` | Turns a serial and a time into the full `data` struct, including every file path | It doesn't need telling. It tries `getdanishlanderpaths`, `getgermanlanderpaths` and `getswedishlanderpaths` in turn and takes the first one that recognises the SoundTrap |
+
+The two work differently because of what identifies a lander. **Lander and deployment numbers are only unique within a country** -- German lander 1 is a different instrument from Danish lander 1 -- so `getlanderdeploymentinfo` has to be told the country. **SoundTrap serial numbers are unique across the whole project**, so once you have a serial `getlanderpaths` can search every country for it. In a script this means the country is set once, at the top:
 
 ``` matlab
-%which lander (1-9) and which deployment
-% (1 = Oct 24, 2 = Feb 25, 3 = June 25)
+country      = 'Denmark';
 landernumber = 1;
 deployment   = 1;
 
-[startTime, ~, serialnumber] = getlanderdeploymentinfo(landernumber, deployment);
-data = getlanderdatapaths(serialnumber, startTime);
+[startTime, ~, serialnumber] = getlanderdeploymentinfo(landernumber, deployment, country);
+data = getlanderpaths(serialnumber, startTime);
+```
+
+The search in `getlanderpaths` relies on one rule: a country's `get*landerpaths` function must return `cumbiahdatadefaults()` (a struct with an empty `landernumber`) for a SoundTrap it does not know, rather than raising an error. That is how `getlanderpaths` knows to move on to the next country. If no country recognises the SoundTrap, `getlanderpaths` returns the same empty struct, so check `isempty(data.landernumber)`.
+
+
+### One folder per country
+
+Each country needs to populate it's own data management function which points to the pamgaurd database, binary file folder and metadata. From here we will take the Danish deployements  as an example.The Danish folder structure is. 
+
+Inside a country folder, the Danish layout is:
+
+```
+Denmark/
+    Lander settings <revision>.xlsx
+    GPS/
+        denmark_deployment<D>_gps.mat                    <- data.gpsfile
+    lander<N>/
+        lander<N>_Denmark_database_annotated.sqlite3     <- data.sqlitedB
+        pamguard/
+            lander<N>_Denmark_database.sqlite3           <- data.rawsqlitedB
+            Lander<N>_Denmark.psfx                       <- data.psfxfile
+            PAMBinary/                                   <- data.binaryfolder
+            PAMBinary_sud_sensor/                        <- data.sensorbinaryfolder
+```
+
+The data is organised **by lander, not by deployment**. A lander keeps the same SoundTrap for the whole project, and every deployment of it is processed into one PAMGuard database and one binary store. So `data.sqlitedB` and `data.binaryfolder` are the same for every deployment of a given lander; only the times and positions change. 
+
+Behind the Danish functions sit three helpers:
+
+| Function | What it does |
+|--------------------|----------------------------------------------------|
+| `getlandersuperfolder(country)` | Returns the country's folder: the Dropbox root from `getsuperfolder` (soundnetloc_mat), which picks it by the machine's hostname, followed by `2026-27_CUMBIAH/landers/<country>`. Defaults to `'Denmark'` |
+| `cumbiahlandertable` | Reads the Danish settings spreadsheet into one entry per (lander, deployment) pair that was actually deployed |
+| `cumbiahdatadefaults` | The empty `data` struct: every field a lander record has, set to a neutral default |
+
+These are then used to populate the two crucial data management functions,  `getlanderpaths.m` and `getlanderdeploymentinfo.m`.
+
+`getlanderpaths` needs a time as well as a SoundTrap serial number and then return paths to the data. In `getdanishlanderpaths` the paths are written out lander by lander in the local function.  `getlanderpaths` then iterates through all the different countries  `get*landerpaths` functions returning the correct values - this means other functions need minimal code changes. 
+
+`getlanderdeploymentinfo.m` returns a SoundTrap serial number and a deployment time for a given deployment number, lander ID and country flag. For example, deployment `1`, lander `1` and country `'Denmark'` would return the serial number of the SoundTrap and deployment time for lander 1 in the first Danish deployment. These feed into `getlanderpaths`. Essentially, this function makes it easier for a user to identify serial numbers and deployment times. Again each country is responsible for populating their own  `get*landerdeploymentinfo.m` function. In `getdanishlanderdeploymentinfo` for an example,  `cumbiahlandertable` reads the required metadata from a spreadsheet, however, it can just as easily be hard coded into the function if needed. 
+
+
+### Data format
+
+The `data` struct returned by `getlanderpaths` should have the format below. Whatever country a lander comes from, its `get*landerpaths` function must return a struct with every one of these fields to be compatible with the rest of the library. `cumbiahdatadefaults()` gives the empty version: start from it and fill in what you have. A field you cannot fill keeps its default rather than being left out.
+
+**What and when**
+
+| Field | Type | Contents |
+|--------------------|------------|----------------------------------------------|
+| `landernumber` | double | The lander number, as that country numbers its landers. Empty means "no lander found" -- see above |
+| `deployment` | double | The deployment number within that country, e.g. for Denmark 1 = Oct 24, 2 = Feb 25, 3 = June 25 |
+| `serialnumber` | double | The SoundTrap ST640 ID, e.g. `8690`. Unique across the whole project |
+| `startTime` | datetime | When the lander went in the water |
+| `endTime` | datetime | When it was recovered. The deployment is the half-open window `[startTime, endTime)` |
+| `synctime` | datetime | When the SoundTrap clock was synchronised to GPS on deck |
+
+**Where**
+
+| Field | Type | Contents |
+|--------------------|------------|----------------------------------------------|
+| `droplocation` | 1×2 double | `[lat lon]` where the lander was dropped |
+| `retrievelocation` | 1×2 double | `[lat lon]` where it was picked up |
+
+Positions are decimal degrees, WGS84, always in the order `[lat lon]`, with longitude **east positive**.
+
+**The instrument**
+
+| Field | Type | Contents |
+|--------------------|------------|----------------------------------------------|
+| `hydrophoneIDs` | 4×1 double | Hydrophone serial numbers, indexed by SoundTrap channel: `hydrophoneIDs(2)` is the hydrophone on channel 2 |
+| `hydrophonecolours` | 4×1 string | Hydrophone colour markings, indexed by channel in the same way |
+| `dutycycle` | double | The recording duty cycle |
+| `releaser` | double | The acoustic releaser code |
+| `cpod` | double | The serial number of the CPOD on the lander |
+
+**Data paths**
+
+| Field | Type | Contents |
+|--------------------|------------|----------------------------------------------|
+| `sqlitedB` | char | The annotated PAMGuard database -- the one to analyse from |
+| `rawsqlitedB` | char | The database as PAMGuard wrote it |
+| `binaryfolder` | char | The PAMGuard binary store (clicks and so on) |
+| `sensorbinaryfolder` | char | The binary store of the SoundTrap's own sensor data (IMU etc.) |
+| `psfxfile` | char | The PAMGuard configuration file |
+| `gpsfile` | char | The boat GPS track for this deployment trip |
+
+The paths are full paths, rooted on `getlandersuperfolder(country)`. Nothing checks that they exist: a lander that has not been processed yet returns the paths its data *will* have.
+
+**What the localisation actually uses.** `locateplatform` needs only some of these fields, so they are the ones to get right first when you set up a new country:
+
+-   `landernumber`, which must not be empty;
+-   `startTime`, which picks the calibration day;
+-   `droplocation`, the centre of the coarse search when you pass `'gridcenter', data.droplocation`;
+-   `sqlitedB`, with `rawsqlitedB` as a fallback. If the annotated database has no `bc` events, `locateplatform` warns and reads the calibration events from the raw one instead;
+-   `binaryfolder`. This must contain PAMGuard's usual day folders (`yyyyMMdd`), because `locateplatform` reads the clicks from `binaryfolder/<calibration day>`;
+-   `gpsfile`, a `.mat` file holding a struct called `gpsdata` with fields `time` (datetime), `latitude` and `longitude` -- the boat track the transients are matched against.
+
+The rest -- hydrophones, releaser, CPOD, sensor data -- is carried along for other analyses.
+
+
+::: {.callout-important}
+### Serial numbers must be unique
+
+`getlanderpaths` takes the first country that recognises a SoundTrap at a given time. If the same serial number were in two countries' spreadsheets with overlapping deployment windows, it would silently return the first one in the list. That cannot happen with SoundTraps - one instrument cannot be in two seas at once -- but it can happen through a typo in a serial number, so check new spreadsheets against the existing ones.
+:::
+
+### The` superfolder` function and new machines
+
+`getsuperfolder` provides a root name for the Danish data. You will see it's used in the `getdanishlanderpaths` and `getdanish landerdeploymentinfo.m`. This is a super useful if say using a cloud storage and a root path to the cloud storage folder means it's easy to switch the name of paths on different machines. 
+
+### Checking it worked
+
+However the data got there, finish by checking that a lookup resolves to files that exist:
+
+``` matlab
+cumbiahlandertable(true);                         % pick up spreadsheet edits
+[t0, ~, sn] = getlanderdeploymentinfo(N, D, 'Denmark');
+data = getlanderpaths(sn, t0)
+isfile(data.sqlitedB), isfolder(data.binaryfolder), isfile(data.gpsfile)
+```
+
+::: {.callout-warning}
+### If MATLAB cannot find the data
+
+`getlanderpaths` does not check that any path exists -- a lander that has not been processed yet returns the path its data *will* have. If the localisation fails with a missing-file error, check `data.sqlitedB`, `data.binaryfolder` and `data.gpsfile` against what is actually on disk before looking anywhere else.
+:::
+
+## Running the functions
+
+Open `locate_landers/locate_platform.m`, set the country, the lander and the deployment at the top, and run it:
+
+``` matlab
+%which country, which lander and which deployment. For Denmark,
+%landers 1-9 and deployments 1 = Oct 24, 2 = Feb 25, 3 = June 25
+country      = 'Denmark';
+landernumber = 1;
+deployment   = 1;
+
+[startTime, ~, serialnumber] = getlanderdeploymentinfo(landernumber, deployment, country);
+data = getlanderpaths(serialnumber, startTime);
 
 results = locateplatform(data, 'depth', 17, ...
     'gridlims', [-40 40], 'gridcenter', data.droplocation);
 ```
 
-`getlanderdeploymentinfo` turns the lander and deployment numbers into a start time and a SoundTrap serial number, and `getlanderdatapaths` turns those into the database, the binary store, the boat GPS track and the drop position. Not every lander was in every deployment -- only landers 1, 5, 7 and 8 were redeployed in Feb 25, and lander 8 never released in June 25 -- and asking for a combination that never happened raises an error listing the deployments that lander *does* have.
+`getlanderdeploymentinfo` turns the lander and deployment numbers into a start time and a SoundTrap serial number, and `getlanderpaths` turns those into the database, the binary store, the boat GPS track and the drop position. Not every lander was in every deployment -- in Denmark, only landers 1, 5, 7 and 8 were redeployed in Feb 25, and lander 8 never released in June 25 -- and asking for a combination that never happened raises an error listing the deployments that lander *does* have.
 
 The `gridlims`/`gridcenter` pair restricts the coarse search to ±40 m around the drop position. This is worth doing: the alternative is to search the whole boat track, which is correct but much slower.
 
@@ -237,7 +381,7 @@ results = locateplatform(data, 'depth', 17);
 ```
 
 ::: {.callout-tip}
-## Useful options
+### Useful options
 
 The full set is in `help locateplatform`; these are the ones you will actually reach for.
 
@@ -253,7 +397,7 @@ The full set is in `help locateplatform`; these are the ones you will actually r
 | `setlocation` | `[]` | When the position is known, or the search will not converge -- see @sec-set-location |
 :::
 
-## What it prints
+### What it prints
 
 The script prints a short summary before it plots anything. For lander 1 of deployment 1:
 
@@ -369,7 +513,9 @@ Once each lander has been checked individually, `locate_array.m` runs the same c
 The options are all at the top of the script:
 
 ``` matlab
-%which deployment (1 = Oct 24, 2 = Feb 25, 3 = June 25) and which landers
+%which country, which deployment and which landers. For Denmark,
+%1 = Oct 24, 2 = Feb 25, 3 = June 25
+country    = 'Denmark';
 deployment = 1;
 landers    = [1 2 3];
 
@@ -423,7 +569,7 @@ and then draws the array over the seabed.
 
 ![Drop and calculated positions of the CUMBIAH landers, deployment 1, plotted in metres east and north of the mean drop position over the KattegatSouth depth model. Open circles are drop positions, filled circles are calculated positions, and the dotted line between each pair shows how far the lander moved on the way down.](../images/lander_array_example.png){#fig-array}
 
-The legend does the useful work here. For each lander it gives the distance between the drop and the calculated position, and for each *pair* of landers it gives the separation between their calculated positions. Those inter-lander distances are what the porpoise triangulation depends on, and they are worth checking against the nominal array design -- the landers were laid out as roughly 30 m triangles.
+The legend is informative; for each lander it gives the distance between the drop and the calculated position, and for each *pair* of landers it gives the separation between their calculated positions. Those inter-lander distances are what the porpoise triangulation depends on, and they are worth checking against the nominal array design -- the landers were laid out as roughly 30 m triangles.
 
 In @fig-array, landers 1 and 2 landed within a few metres of where they were dropped, while lander 3 moved 19.6 m north. That is a real displacement, not an artefact: it is exactly the sort of thing this whole exercise exists to measure, and using the drop positions instead would have put every bearing from lander 3 nearly 20 m out.
 
