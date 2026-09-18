@@ -153,37 +153,48 @@ The click detector is configured with an 80--150 kHz trigger band to pick out po
 
 ## Finding the calibration period
 
-The calibration lines were always run immediately after the landers went down, so the transients are in the first hour or so of each deployment. Open PAMGuard in **viewer mode** on the lander's database and binary store, go to the ***Data Map*** tab and navigate to the start of the deployment. The calibration shows up as a dense, continuous block of click detections quite unlike anything else in the dataset -- the boat is essentially shouting at the lander for half an hour.
+The calibration lines were always run soon after the landers were deployed, so the transients are in the first hour or so of each deployment. Open PAMGuard in **viewer mode** and select the database and binary store for a lander. Go to the ***Data Map*** tab and navigate to the start of the deployment. The calibration shows up as as a series of broadband click events.
 
 Right click on that block and select ***Centre Data Here*** to load it.
 
-![**Placeholder.** The data map at the start of the deployment. The calibration lines appear as a solid block of detections in the first hour, much denser than any porpoise encounter.](../images/locatelanders/placeholder_datamap.png){#fig-mark-datamap}
+![**Placeholder.** The data map at the start of the deployment. The calibration lines appear as a solid block of detections in the first hour](../images/locatelanders/placeholder_datamap.png){#fig-mark-datamap}
 
 ## Identifying the transients
 
-Switch to the ***Click Detector*** tab and look at the bearing--time display. The cavitation transients are unmistakable: a thick, continuous band of detections whose bearing sweeps smoothly as the boat drives past, rather than the short, sparse click trains of a porpoise. Most will be unclassified (black) because they are not porpoise-like, so make sure ***Unclassified clicks*** is ticked at the top of the display or you will not see them at all.
+Switch to the ***Click Detector*** tab and look at the bearing-time display. The cavitation transients are unmistakable: a thick, continuous band of detections whose bearing sweeps smoothly as the boat drives past, rather than the short, sparse click trains of a porpoise. Most will be unclassified (black) because they are not porpoise-like, so make sure ***Unclassified clicks*** is ticked at the top of the display or you will not see them at all. 
+
+::: {.callout-note}
+In fact, it's good these clicks are not porpoise like because their braodband nature means they produce very accurate time delays and so therefore accruate bearings 
+:::
 
 Set the loaded duration to something generous (30 minutes) using the navigation dialog so that a whole calibration line is visible at once.
 
-![**Placeholder.** Cavitation transients in the bearing--time display. The bearing sweeps smoothly through the pass, and the slant angle spikes as the boat goes directly overhead.](../images/locatelanders/placeholder_transients.png){#fig-mark-transients}
+![Cavitation transients in the bearing--time display. The bearing sweeps smoothly through the pass, and the slant angle spikes as the boat goes directly overhead.](../images/locatelanders/placeholder_transients.png){#fig-mark-transients}
 
 ## Marking them up
 
-Use the area selection tool exactly as for a porpoise click train: double click on the bearing--time display, draw a box around the transients, and join the ends of the dotted line so the selected area goes grey. Then right click inside the grey area and select ***Label Clicks*** (or press *Ctrl+L*).
+Use the area selection tool exactly as for a porpoise click train: double click on the bearing--time display, draw a polygon around the transients, and join the ends of the dotted line so the selected area goes grey (you can also just draw a box). Then right click inside the grey area and select ***Label Clicks*** (or press *Ctrl+L*). Do this for in the bearing time display and then move to the slant angle display (right click) - remove clicks which are not part of the smooth bearing change - we only want to reduce false bearings if possible. 
 
-![**Placeholder.** Marking out a run of cavitation transients with the area selector.](../images/locatelanders/placeholder_areaselect.png){#fig-mark-area}
+![Marking out a run of cavitation transients with the area selector.](../images/locatelanders/placeholder_areaselect.png){#fig-mark-area}
 
 In the event dialog, create a new event and set the ***Event type/species*** to **`bc`** (boat cavitation). If `bc` is not in the list yet, click the cog icon next to the selection box and add it in the Lookup Editor. This label is what `locateplatform` searches for, via its `eventtype` option, so it must match.
 
-![**Placeholder.** Labelling the marked clicks as a `bc` event.](../images/locatelanders/placeholder_bcevent.png){#fig-mark-event}
+![Labelling the marked clicks as a `bc` event. 'bc' stands for boat calibration](../images/locatelanders/placeholder_bcevent.png){#fig-mark-event width="350"}
+
+Once and event is marked out it should look something like this.
+
+![A marked click train](../images/locatelanders/placeholder_transients_event.png){#fig-mark-transients-event}
+
+Note that this is just one section of a calibration trial. As many of the passes as possible should be marked out and all the marked clicks should be a 'bc' event type. 
+
 
 ::: {.callout-tip}
 ## What to include and what to leave out
 
 -   **Cover the whole calibration, not just the best line.** The grid search is constrained by the boat approaching the lander from a range of directions, so bearings from all the lines together are worth far more than a lot of bearings from one line.
 -   **Include the overhead passes.** They look messy -- the slant angle swings through its full range in a few seconds -- but they are the most informative clicks in the whole dataset for fixing position.
--   **Do not clean up the way you would for a porpoise.** The search is a least-squares fit over thousands of bearings, so a scattering of echoes and bad time delays is averaged out. Removing them by hand is not worth the effort.
--   **Several events are fine.** `locateplatform` pools every `bc` event in the day folder, so one event per calibration line is the natural way to work.
+-   **Do not get too obsessed with whether individual clicks should be removed or added** The search is a least-squares fit over thousands of bearings, so a scattering of echoes and bad time delays is averaged out. Taking ages to agonise over each clicks is not worth the effort.
+-   **Several events are fine.** `locateplatform` pools every `bc` event in the day folder, so one huge event or mutliple events per pass are fine. 
 :::
 
 Once the events are saved, the annotated database (`lander<N>_<Site>_database_annotated.sqlite3`, e.g. `lander1_Denmark_database_annotated.sqlite3`) holds the calibration events and the binary store holds the clicks themselves. That is everything the MATLAB side needs.
@@ -204,7 +215,7 @@ The MATLAB side needs rather more on the path than the `cumbiah_landers_mat` rep
 
 ## Data management
 
-The main script takes a struct of data paths - it needs to know where your PAMGuard dtaabse, binary file store, GPS data is along with metadata like drop location. Because we have up to nine landers per country, it is a good idea to create some datamanagement functions. Instead of hard coding a struct each time, you input a country, a lander and a deployment, and a function works out where everything is and what dtaa paths are needed. The management functions should be roughly the same in every country: one folder per country, a settings spreadsheet describing every deployment, one folder per lander holding its PAMGuard output, and a pair of MATLAB functions that know how to read them. The examples below use the Danish array (nine landers in the Great Belt, three deployments), because Denmark is the only country implemented so far. Germany and Sweden have placeholder functions waiting to be filled in -- see @sec-One-folder-per-country.
+The main script takes a struct of data paths - it needs to know where your PAMGuard database, binary file store, GPS data is along with metadata like drop location. Because we have up to nine landers per country, it is a good idea to create some datamanagement functions. Instead of hard coding a struct each time, you input a country, a lander and a deployment, and a function works out where everything is and what dtaa paths are needed. The management functions should be roughly the same in every country: one folder per country, a settings spreadsheet describing every deployment, one folder per lander holding its PAMGuard output, and a pair of MATLAB functions that know how to read them. The examples below use the Danish array (nine landers in the Great Belt, three deployments), because Denmark is the only country implemented so far. Germany and Sweden have placeholder functions waiting to be filled in -- see @sec-One-folder-per-country.
 
 ### How a lander is looked up
 
@@ -215,7 +226,7 @@ Two functions are called from the scripts, and each one passes the work on to a 
 | `getlanderdeploymentinfo(lander, deployment, country)` | Turns a lander number and a deployment number into a start time, an end time, a SoundTrap serial and the hydrophone IDs | The `country` input. A `switch` sends `'Denmark'`, `'Germany'` or `'Sweden'` to `getdanishlanderdeploymentinfo`, `getgermanlanderdeploymentinfo` or `getswedishlanderdeploymentinfo` |
 | `getlanderpaths(serial, time)` | Turns a serial and a time into the full `data` struct, including every file path | It doesn't need telling. It tries `getdanishlanderpaths`, `getgermanlanderpaths` and `getswedishlanderpaths` in turn and takes the first one that recognises the SoundTrap |
 
-The two work differently because of what identifies a lander. **Lander and deployment numbers are only unique within a country** -- German lander 1 is a different instrument from Danish lander 1 -- so `getlanderdeploymentinfo` has to be told the country. **SoundTrap serial numbers are unique across the whole project**, so once you have a serial `getlanderpaths` can search every country for it. In a script this means the country is set once, at the top:
+The two work differently because of what identifies a lander. **Lander and deployment numbers are only unique within a country** -- German lander 1 is a different instrument from Danish lander 1 -- so `getlanderdeploymentinfo` has to be told the country. **SoundTrap serial numbers are unique across the whole project**, so, once you have a serial number, then `getlanderpaths` can search every country for it. In a script this means the country is set once, at the top:
 
 ``` matlab
 country      = 'Denmark';
