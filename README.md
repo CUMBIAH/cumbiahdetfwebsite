@@ -1,7 +1,7 @@
 # cumbiahdetfwebsite
 
 A simple [Quarto](https://quarto.org) website for the analysis documents used in the CUMBIAH
-detection function project.
+detection function project. The site is published at [https://cumbiah.github.io/cumbiahdetfwebsite/](https://cumbiah.github.io/cumbiahdetfwebsite/)
 
 The site is built from `.qmd` (Quarto markdown) source files in this repository and published
 automatically to GitHub Pages whenever changes are pushed to `main`.
