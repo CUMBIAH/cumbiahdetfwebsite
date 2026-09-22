@@ -1,0 +1,8 @@
+---
+title: "Modelling lander movement"
+description: "Checking whether lander orientation has changed and what to do if it does"
+format: html
+order: 3
+image: ../images/cumbiah-icon.svg
+---
+
