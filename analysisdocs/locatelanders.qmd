@@ -83,7 +83,7 @@ The process is this:
 3.  **Score the answer.** Compare those predicted angles with the angles the lander actually measured. The closer they match across all the clicks, the better this candidate position is. That score is the chi-squared (@sec-chi2).
 4.  **Repeat for every grid point** and keep the one with the best score.
 
-It is brute force, and unashamedly so. It can also be scaled up dimesniosinally, so instead of each grid point being a laititude, longitdue, it can be 5D grid of latitude,longitude,heading, pitch and roll. The appeal of this approach is that it is relatively simple: you only need to be able to predict the measurement for a given answer, which is straightforward geometry, and a normal consumer computer easily has the processor power to try tens of thousands of answers.
+It is brute force, and unashamedly so. It can also be scaled up dimensionally, so instead of each grid point being a latitude, longtitude, it can be 5D grid of latitude,longitude,heading, pitch and roll. The appeal of this approach is that it is relatively simple and flexible: you only need to be able to predict the measurement for a given answer, which is straightforward geometry, and a normal consumer computer easily has the processor power to try tens of thousands of answers.
 
 ::: {.callout-tip}
 ## The surface shape is important
