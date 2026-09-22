@@ -1,6 +1,6 @@
 ---
 title: "Tracking Porpoises with PAMGuard"
-description: "Detecting, localising and exporting harbour porpoise clicks from hydrophone-cluster landers in PAMGuard."
+description: "Detecting harbour porpoise clicks, determing bearing, exporting and comparing to CPOD data"
 order: 1
 author: "Jamie Macaulay"
 image: ../images/pamguard/image45.png

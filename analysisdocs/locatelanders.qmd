@@ -1,6 +1,6 @@
 ---
 title: "Locating the Landers"
-description: "Finding where each CUMBIAH lander came to rest on the seabed, and which way up and round it is lying, from the boat calibration lines."
+description: "Finding the position and orientation of the landers on the seabed from the boat calibration experiments"
 order: 2
 author: "Jamie Macaulay"
 image: ../images/lander_array_example.png
