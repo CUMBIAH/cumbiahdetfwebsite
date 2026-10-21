@@ -1,6 +1,6 @@
 ---
 title: "Determining distance to CPODs"
 description: "Bring it all together and creating a table of distances to CPOD detections"
-order: 6
+order: 7
 image: ../images/cumbiah-icon.svg
 ---

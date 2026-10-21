@@ -2,6 +2,6 @@
 title: "Time alignement"
 description: "Placeholder page for time aligning CPODs and Tracks"
 format: html
-order: 5
+order: 6
 image: ../images/cumbiah-icon.svg
 ---

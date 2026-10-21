@@ -375,7 +375,7 @@ The coarse position search is skipped, so @fig-coarse-grid is not drawn, but eve
 
 # Data management {#data-management}
 
-The main script takes a struct of data paths see @data-pre - MATLAB needs to know where your PAMGuard database, binary file store, GPS data is along with metadata like drop location. Because we have up to nine landers per country, it is a good idea to create some data management functions. Instead of hard coding a struct each time, you input a country, a lander and a deployment, and a function works out where everything is and what data paths are needed. The management functions should be roughly the same in every country: one folder per country, a settings spreadsheet describing every deployment, one folder per lander holding its PAMGuard output, and a pair of MATLAB functions that know how to read them. The examples below use the Danish array (up to nine landers in the Great Belt, three deployments), because Denmark is the only country implemented so far. Germany and Sweden have placeholder functions waiting to be filled in -- see @sec-One-folder-per-country.
+The main script takes a struct of data paths see @data-pre - MATLAB needs to know where your PAMGuard database, binary file store, GPS data is along with metadata like drop location. Because we have up to nine landers per country, it is a good idea to create some data management functions. Instead of hard coding a struct each time, you input a country, a lander and a deployment, and a function works out where everything is and what data paths are needed. The management functions should be roughly the same in every country: one folder per country, a settings spreadsheet describing every deployment, one folder per lander holding its PAMGuard output, and a pair of MATLAB functions that know how to read them. The examples below use the Danish array (up to nine landers in the Great Belt, three deployments), because Denmark is the only country implemented so far. Germany and Sweden have placeholder functions waiting to be filled in -- see @sec-one-folder-per-country.
 
 ### How a lander is looked up
 
@@ -400,7 +400,7 @@ data = getlanderpaths(serialnumber, startTime);
 The search in `getlanderpaths` relies on one rule: a country's `get*landerpaths` function must return `cumbiahdatadefaults()` (a struct with an empty `landernumber`) for a SoundTrap it does not know, rather than raising an error. That is how `getlanderpaths` knows to move on to the next country. If no country recognises the SoundTrap, `getlanderpaths` returns the same empty struct, so check `isempty(data.landernumber)`.
 
 
-### One folder per country
+### One folder per country {#sec-one-folder-per-country}
 
 Each country needs to populate it's own data management function which points to the PAMGuard database, binary file folder and metadata for a lander. From here we will take the Danish deployementsas an example.The Danish folder structure is. 
 
