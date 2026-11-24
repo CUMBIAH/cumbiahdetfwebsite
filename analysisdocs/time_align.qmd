@@ -10,5 +10,9 @@ workflow:
     - to: CPOD_det_dist
       label: "Time aligned CPOD detections"
       icon: matlab
+      details: >-
+        *Draft, to be confirmed.* The CPOD/FPOD porpoise detections from the CPODs
+        around the array, with their times corrected to the same clock as the
+        SoundTrap landers so they can be matched to the localised dive tracks.
 image: ../images/cumbiah-icon.svg
 ---

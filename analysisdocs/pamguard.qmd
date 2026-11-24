@@ -9,9 +9,23 @@ workflow:
     - to: multitrack
       label: "PAMGuard data"
       icon: pamguard
+      details: >-
+        The PAMGuard **binary store** for the lander, holding the click detections
+        (`Click_Detector_Click_Detector_Clicks_*.pgdf`) with clicks classified as
+        porpoise and bearings calculated, and the **PAMGuard database** (`.sqlite3`)
+        that belongs to it. Mark the boat calibration periods as `bc` events first so
+        they are left out, and make a named copy of the database for the tracks to be
+        written into.
     - to: locatelanders
       label: "PAMGuard data + vessel GPS data"
       icon: pamguard
+      details: >-
+        The PAMGuard **binary files** (in `yyyyMMdd` day folders) with the click
+        detections and bearings, and the **PAMGuard database** with the propeller
+        cavitation transients from the calibration trials marked as `bc` events. The
+        **vessel GPS track** of the boat during the calibration, as a `.mat` file holding
+        a table `gpsdata` with columns `time` (datetime), `latitude` and `longitude`.
+        The lander's drop location and start time come from the data management struct.
 author: "Jamie Macaulay"
 image: ../images/pamguard/image45.png
 toc: true

@@ -9,5 +9,9 @@ workflow:
     - to: CPOD_det_dist
       label: "3D porpoise dive tracks"
       icon: matlab
+      details: >-
+        *Draft, to be confirmed.* Geo-referenced 3D positions (latitude, longitude
+        and depth) of each localised porpoise over time, one track per animal with
+        location errors, saved as `.mat` files.
 image: ../images/cumbiah-icon.svg
 ---

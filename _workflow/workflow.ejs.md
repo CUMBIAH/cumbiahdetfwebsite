@@ -12,13 +12,23 @@
 //         label: "PAMGuard data"  # text shown on the arrow
 //         icon: pamguard          # optional: matlab (.mat files) or pamguard,
 //                                 # any images/icons/<name>.png
+//         details: >-             # optional: text for the popup shown when the
+//           What this data is...  # label is clicked; **bold**, *italic* and
+//                                 # `code` are allowed
 //
 // The arrows are drawn by workflow.js from these outputs. On narrow screens the
 // arrows are hidden and each card lists its outputs as text instead.
 
 const stem = (item) => (item.filename || "").replace(/\.qmd$/, "");
-const titles = {};
-for (const item of items) { titles[stem(item)] = item.title; }
+const titles = {}, hrefs = {};
+for (const item of items) { titles[stem(item)] = item.title; hrefs[stem(item)] = item.outputHref; }
+
+// Escape text, then allow **bold**, *italic* and `code` in the details.
+const md = (text) => String(text || "")
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+  .replace(/`([^`]+)`/g, "<code>$1</code>")
+  .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+  .replace(/\*([^*]+)\*/g, "<em>$1</em>");
 
 let nRows = 1, nCols = 1;
 for (const item of items) {
@@ -30,7 +40,10 @@ for (const item of items) {
 const edges = [];
 for (const item of items) {
   for (const out of ((item.workflow || {}).outputs || [])) {
-    edges.push({ from: stem(item), to: out.to, label: out.label || "", icon: out.icon || "" });
+    edges.push({ from: stem(item), to: out.to, label: out.label || "", icon: out.icon || "",
+                 details: md(out.details),
+                 fromTitle: item.title, toTitle: titles[out.to] || out.to,
+                 fromHref: item.outputHref, toHref: hrefs[out.to] || "" });
   }
 }
 %>
@@ -38,7 +51,8 @@ for (const item of items) {
 ```{=html}
 <div class="workflow" style="--wf-cols: <%- nCols %>; --wf-rows: <%- nRows %>;" data-edges="<%- encodeURIComponent(JSON.stringify(edges)) %>">
 <svg class="workflow-arrows" aria-hidden="true"></svg>
-<div class="workflow-labels" aria-hidden="true"></div>
+<div class="workflow-labels"></div>
+<div class="workflow-popover" role="dialog" aria-modal="false" hidden></div>
 ```
 
 <% for (const item of items) {
@@ -67,7 +81,10 @@ for (const item of items) {
 <% if (outputs.length > 0) { %>
 <ul class="workflow-outputs">
 <% for (const out of outputs) { %>
-<li><% if (out.icon) { %><img class="workflow-icon" src="images/icons/<%- out.icon %>.png" alt="<%- out.icon %>"> <% } %><span class="workflow-outputs-to">&rarr; <%= titles[out.to] || out.to %></span>: <%= out.label %></li>
+<li><details>
+<summary><% if (out.icon) { %><img class="workflow-icon" src="images/icons/<%- out.icon %>.png" alt="<%- out.icon %>"> <% } %><span class="workflow-outputs-to">&rarr; <%= titles[out.to] || out.to %></span>: <%= out.label %></summary>
+<% if (out.details) { %><p><%= md(out.details) %></p><% } %>
+</details></li>
 <% } %>
 </ul>
 <% } %>

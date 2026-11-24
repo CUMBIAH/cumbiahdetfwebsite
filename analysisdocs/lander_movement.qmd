@@ -10,6 +10,11 @@ workflow:
     - to: locatelanders
       label: "Time series of lander orientation"
       icon: matlab
+      details: >-
+        *Draft, to be confirmed.* The heading, pitch and roll of the lander through
+        the deployment, calculated from the SoundTrap ST640 magnetometer and
+        accelerometer by PAMGuard's SoundTrap SWV Sensor Import module. If the lander
+        moved, this gives its orientation as a time series rather than one fixed value.
 image: ../images/cumbiah-icon.svg
 ---
 

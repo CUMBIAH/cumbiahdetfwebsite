@@ -78,26 +78,83 @@
       svg.appendChild(path);
 
       if (e.label || e.icon) {
-        const lab = document.createElement("div");
+        const lab = document.createElement("button");
+        lab.type = "button";
         lab.className = `workflow-label is-${label.place}`;
         lab.style.left = `${label.x}px`;
         lab.style.top = `${label.y}px`;
         if (label.width) lab.style.maxWidth = `${Math.max(label.width, 96)}px`;
-        const icon = e.icon
-          ? `<img class="workflow-icon" src="${ICON_DIR}${e.icon}.png" alt="" title="${e.icon === "matlab" ? "MATLAB .mat files" : e.icon}">`
-          : "";
-        lab.innerHTML = icon + `<span>${e.label}</span>`;
+        lab.innerHTML = iconHtml(e.icon) + `<span>${e.label}</span>`;
+        lab.setAttribute("aria-haspopup", "dialog");
+        lab.setAttribute("aria-label", `${e.label}: ${e.fromTitle} to ${e.toTitle}. Show details`);
+        lab.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          togglePopover(root, lab, e);
+        });
         labels.appendChild(lab);
       }
     }
   }
 
+  function iconHtml(icon) {
+    if (!icon) return "";
+    const title = icon === "matlab" ? "MATLAB .mat files" : icon === "pamguard" ? "PAMGuard data" : icon;
+    return `<img class="workflow-icon" src="${ICON_DIR}${icon}.png" alt="" title="${title}">`;
+  }
+
+  // The popup that describes the data on an arrow. One per diagram, filled
+  // and placed under whichever label was clicked.
+  function closePopover(root) {
+    const pop = root.querySelector(".workflow-popover");
+    if (!pop || pop.hidden) return;
+    pop.hidden = true;
+    const open = root.querySelector(".workflow-label.is-open");
+    if (open) { open.classList.remove("is-open"); open.focus({ preventScroll: true }); }
+  }
+
+  function togglePopover(root, lab, e) {
+    const pop = root.querySelector(".workflow-popover");
+    if (lab.classList.contains("is-open")) { closePopover(root); return; }
+    closePopover(root);
+
+    pop.innerHTML =
+      `<button type="button" class="workflow-popover-close" aria-label="Close">&times;</button>` +
+      `<div class="workflow-popover-title">${iconHtml(e.icon)}<span>${e.label}</span></div>` +
+      `<div class="workflow-popover-route"><a href="${e.fromHref}">${e.fromTitle}</a> &rarr; <a href="${e.toHref}">${e.toTitle}</a></div>` +
+      `<p>${e.details || "No description yet."}</p>`;
+    pop.setAttribute("aria-label", e.label);
+    pop.querySelector(".workflow-popover-close").addEventListener("click", () => closePopover(root));
+    pop.hidden = false;
+    lab.classList.add("is-open");
+
+    // Below the label, centred on it, kept inside the diagram; above it if
+    // there is no room underneath.
+    const box = root.getBoundingClientRect();
+    const r = lab.getBoundingClientRect();
+    const w = pop.offsetWidth, h = pop.offsetHeight;
+    let left = r.left - box.left + r.width / 2 - w / 2;
+    left = Math.max(0, Math.min(left, box.width - w));
+    let top = r.bottom - box.top + 8;
+    if (top + h > box.height && r.top - box.top - 8 - h >= 0) top = r.top - box.top - 8 - h;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${top}px`;
+    pop.querySelector(".workflow-popover-close").focus({ preventScroll: true });
+  }
+
   function init() {
     document.querySelectorAll(".workflow").forEach((root) => {
-      const redraw = () => window.requestAnimationFrame(() => draw(root));
+      const redraw = () => window.requestAnimationFrame(() => { closePopover(root); draw(root); });
+      root.querySelector(".workflow-popover").addEventListener("click", (ev) => ev.stopPropagation());
+      document.addEventListener("click", () => closePopover(root));
+      document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") closePopover(root); });
       redraw();
-      if (window.ResizeObserver) new ResizeObserver(redraw).observe(root);
-      window.addEventListener("resize", redraw);
+      // Redraw when the diagram changes width (not height, which the popup
+      // itself can change).
+      let lastWidth = 0;
+      if (window.ResizeObserver) new ResizeObserver((entries) => {
+        const w = entries[0].contentRect.width;
+        if (w !== lastWidth) { lastWidth = w; redraw(); }
+      }).observe(root);
       root.querySelectorAll("img").forEach((img) => img.addEventListener("load", redraw));
     });
   }
