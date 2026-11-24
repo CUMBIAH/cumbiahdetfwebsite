@@ -3,6 +3,13 @@ title: "Modelling lander movement"
 description: "Checking whether lander orientation has changed and what to do if it does"
 format: html
 order: 3
+workflow:
+  row: 1
+  col: 3
+  outputs:
+    - to: locatelanders
+      label: "Time series of lander orientation"
+      icon: matlab
 image: ../images/cumbiah-icon.svg
 ---
 

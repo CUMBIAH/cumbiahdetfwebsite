@@ -1,10 +1,10 @@
 ---
 title: "CUMBIAH Detection Function Analyses"
 page-layout: full
+include-after-body: _workflow/workflow.html
 listing:
   contents: analysisdocs
-  type: grid
-  image-height: 260px
+  template: _workflow/workflow.ejs.md
   sort: "order"
   fields:
     - image

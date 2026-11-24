@@ -1,0 +1,151 @@
+/*-- scss:defaults --*/
+
+/*-- scss:rules --*/
+
+// Homepage workflow: the analysis cards on a grid with labelled arrows between
+// them (see _workflow/). Shared by the light and dark themes; colours come from
+// each theme's own variables.
+
+.workflow {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--wf-cols), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--wf-rows), auto);
+  column-gap: 9rem;
+  row-gap: 5rem;
+  margin: 1.5rem 0 3rem;
+
+  .workflow-node {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+  }
+
+  .quarto-grid-link {
+    display: block;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .card-img-top {
+    margin: 0;
+  }
+
+  .thumbnail-image {
+    width: 100%;
+    height: 190px;
+    object-fit: cover;
+  }
+
+  .card-body {
+    padding: 0.75rem 0.9rem;
+  }
+
+  .listing-title {
+    font-size: 1.05rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .listing-description {
+    font-size: 0.875rem;
+  }
+}
+
+.workflow-arrows {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  color: $link-color;
+
+  polyline {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}
+
+.workflow-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.workflow-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: max-content;
+  max-width: 8.5rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-align: left;
+  color: $body-color;
+  background-color: $body-bg;
+  border: 1px solid rgba($link-color, 0.55);
+  border-radius: 0.5rem;
+  box-shadow: 0 0.1rem 0.3rem rgba(0, 0, 0, 0.08);
+}
+
+.workflow-label.is-above {
+  transform: translate(-50%, -100%);
+}
+
+.workflow-label.is-left {
+  transform: translate(-100%, -50%);
+  max-width: 10rem;
+}
+
+// PAMGuard / MATLAB icons on the arrow labels and in the narrow-screen list.
+.workflow-icon {
+  flex: 0 0 auto;
+  width: 1.35rem;
+  height: 1.35rem;
+  object-fit: contain;
+}
+
+// Outputs listed as text under each card: only shown when the arrows are not.
+.workflow-outputs {
+  display: none;
+}
+
+// Below the large breakpoint there is no room for arrows between columns, so
+// stack the cards in document order and list each card's outputs instead.
+@media (max-width: 991.98px) {
+  .workflow {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .workflow-arrows,
+  .workflow-labels {
+    display: none;
+  }
+
+  .workflow-outputs {
+    display: block;
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0 0 0 0.5rem;
+    font-size: 0.85rem;
+
+    .workflow-outputs-to {
+      font-weight: 600;
+      color: $link-color;
+    }
+
+    .workflow-icon {
+      width: 1.1rem;
+      height: 1.1rem;
+      vertical-align: -0.2rem;
+    }
+  }
+}

@@ -3,5 +3,12 @@ title: "Time alignement"
 description: "Placeholder page for time aligning CPODs and Tracks"
 format: html
 order: 6
+workflow:
+  row: 3
+  col: 3
+  outputs:
+    - to: CPOD_det_dist
+      label: "Time aligned CPOD detections"
+      icon: matlab
 image: ../images/cumbiah-icon.svg
 ---

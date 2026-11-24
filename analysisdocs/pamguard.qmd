@@ -2,6 +2,16 @@
 title: "Tracking Porpoises with PAMGuard"
 description: "Detecting harbour porpoise clicks, determing bearing, exporting and comparing to CPOD data"
 order: 1
+workflow:
+  row: 1
+  col: 1
+  outputs:
+    - to: multitrack
+      label: "PAMGuard data"
+      icon: pamguard
+    - to: locatelanders
+      label: "PAMGuard data + vessel GPS data"
+      icon: pamguard
 author: "Jamie Macaulay"
 image: ../images/pamguard/image45.png
 toc: true
