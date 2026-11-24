@@ -1,6 +1,8 @@
 project:
   type: website
   output-dir: _site
+  resources:
+    - images/icons/*.png
 
 website:
   title: "CUMBIAH DETECTION FUNCTION"
@@ -17,6 +19,6 @@ website:
 format:
   html:
     theme:
-      light: [cosmo, theme/light.scss]
-      dark: [darkly, theme/dark.scss]
+      light: [cosmo, theme/light.scss, theme/workflow.scss]
+      dark: [darkly, theme/dark.scss, theme/workflow.scss]
     toc: false

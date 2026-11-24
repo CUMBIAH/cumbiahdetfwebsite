@@ -2,6 +2,13 @@
 title: "Locating the Landers"
 description: "Finding the position and orientation of the landers on the seabed from the boat calibration experiments"
 order: 2
+workflow:
+  row: 1
+  col: 2
+  outputs:
+    - to: localiseporpoises
+      label: "Lander location and orientation"
+      icon: matlab
 author: "Jamie Macaulay"
 image: ../images/lander_array_example.png
 toc: true

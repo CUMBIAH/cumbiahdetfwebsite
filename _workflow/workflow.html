@@ -1,0 +1,108 @@
+<script>
+// Draws the workflow arrows between the homepage cards. The arrows come from
+// the `workflow: outputs:` front matter of each analysis document (see
+// _workflow/workflow.ejs.md). Arrows are only ever horizontal, vertical or a
+// single right angle: cards that share a row or column get a straight arrow,
+// anything else gets an elbow (across, then down or up).
+(function () {
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const GAP = 8;        // space between an arrow end and the card edge, px
+  const ICON_DIR = "images/icons/";
+
+  function draw(root) {
+    const svg = root.querySelector(".workflow-arrows");
+    const labels = root.querySelector(".workflow-labels");
+    const edges = JSON.parse(decodeURIComponent(root.dataset.edges || "%5B%5D"));
+    svg.innerHTML = "";
+    labels.innerHTML = "";
+
+    // Arrows are only drawn when the cards are laid out as a grid.
+    if (getComputedStyle(svg).display === "none") return;
+
+    const box = root.getBoundingClientRect();
+    svg.setAttribute("width", box.width);
+    svg.setAttribute("height", box.height);
+    svg.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
+
+    const defs = document.createElementNS(SVGNS, "defs");
+    defs.innerHTML =
+      '<marker id="wf-head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
+      '<path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>';
+    svg.appendChild(defs);
+
+    const rectOf = (id) => {
+      const el = root.querySelector(`.workflow-node[data-wf-id="${id}"] .card`);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      const left = r.left - box.left, top = r.top - box.top;
+      return { left, top, right: left + r.width, bottom: top + r.height,
+               cx: left + r.width / 2, cy: top + r.height / 2 };
+    };
+
+    for (const e of edges) {
+      const a = rectOf(e.from), b = rectOf(e.to);
+      if (!a || !b) continue;
+
+      let pts, label;
+      const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      const overlapX = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+
+      if (overlapY > 0 && (b.left >= a.right || b.right <= a.left)) {
+        // Same row: straight across, label above the arrow.
+        const y = (Math.max(a.top, b.top) + Math.min(a.bottom, b.bottom)) / 2;
+        const dir = b.cx > a.cx ? 1 : -1;
+        const x1 = dir > 0 ? a.right + GAP : a.left - GAP;
+        const x2 = dir > 0 ? b.left - GAP : b.right + GAP;
+        pts = [[x1, y], [x2, y]];
+        label = { x: (x1 + x2) / 2, y: y - 6, place: "above", width: Math.abs(x2 - x1) + 16 };
+      } else if (overlapX > 0) {
+        // Same column: straight down or up, label to the left of the arrow.
+        const x = (Math.max(a.left, b.left) + Math.min(a.right, b.right)) / 2;
+        const dir = b.cy > a.cy ? 1 : -1;
+        const y1 = dir > 0 ? a.bottom + GAP : a.top - GAP;
+        const y2 = dir > 0 ? b.top - GAP : b.bottom + GAP;
+        pts = [[x, y1], [x, y2]];
+        label = { x: x - 10, y: (y1 + y2) / 2, place: "left" };
+      } else {
+        // Elbow: out of the side of the source, then down or up into the target.
+        const dirX = b.cx > a.cx ? 1 : -1, dirY = b.cy > a.cy ? 1 : -1;
+        const x1 = dirX > 0 ? a.right + GAP : a.left - GAP;
+        const y2 = dirY > 0 ? b.top - GAP : b.bottom + GAP;
+        pts = [[x1, a.cy], [b.cx, a.cy], [b.cx, y2]];
+        label = { x: (x1 + b.cx) / 2, y: a.cy - 6, place: "above", width: Math.abs(b.cx - x1) };
+      }
+
+      const path = document.createElementNS(SVGNS, "polyline");
+      path.setAttribute("points", pts.map((p) => p.join(",")).join(" "));
+      path.setAttribute("marker-end", "url(#wf-head)");
+      svg.appendChild(path);
+
+      if (e.label || e.icon) {
+        const lab = document.createElement("div");
+        lab.className = `workflow-label is-${label.place}`;
+        lab.style.left = `${label.x}px`;
+        lab.style.top = `${label.y}px`;
+        if (label.width) lab.style.maxWidth = `${Math.max(label.width, 96)}px`;
+        const icon = e.icon
+          ? `<img class="workflow-icon" src="${ICON_DIR}${e.icon}.png" alt="" title="${e.icon === "matlab" ? "MATLAB .mat files" : e.icon}">`
+          : "";
+        lab.innerHTML = icon + `<span>${e.label}</span>`;
+        labels.appendChild(lab);
+      }
+    }
+  }
+
+  function init() {
+    document.querySelectorAll(".workflow").forEach((root) => {
+      const redraw = () => window.requestAnimationFrame(() => draw(root));
+      redraw();
+      if (window.ResizeObserver) new ResizeObserver(redraw).observe(root);
+      window.addEventListener("resize", redraw);
+      root.querySelectorAll("img").forEach((img) => img.addEventListener("load", redraw));
+    });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+</script>

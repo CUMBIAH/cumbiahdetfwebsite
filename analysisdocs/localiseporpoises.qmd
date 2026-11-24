@@ -2,5 +2,12 @@
 title: "Localise Porpoises"
 description: "Placeholder page for porpoise localisation analyses."
 order: 5
+workflow:
+  row: 2
+  col: 2
+  outputs:
+    - to: CPOD_det_dist
+      label: "3D porpoise dive tracks"
+      icon: matlab
 image: ../images/cumbiah-icon.svg
 ---

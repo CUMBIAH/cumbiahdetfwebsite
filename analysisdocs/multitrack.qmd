@@ -2,6 +2,13 @@
 title: "Automatic Porpoise Bearing Tracks"
 description: "Automatically tracking porpoise clicks and verifying in PAMGuard"
 order: 4
+workflow:
+  row: 2
+  col: 1
+  outputs:
+    - to: localiseporpoises
+      label: "Porpoise click trains from single animals"
+      icon: pamguard
 author: "Jamie Macaulay"
 image: ../images/multitrack/tracks_PP1003.png
 toc: true
