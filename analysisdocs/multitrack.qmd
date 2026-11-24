@@ -25,6 +25,8 @@ lightbox: true
 fig-align: center
 ---
 
+{{< video https://www.youtube.com/embed/XrXJVqzPRjM title="Automatic porpoise bearing tracks" aspect-ratio="16x9" >}}
+
 ::: {.callout-note appearance="simple"}
 |  |  |
 |---|---|
