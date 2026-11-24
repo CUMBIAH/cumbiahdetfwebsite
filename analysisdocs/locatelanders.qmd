@@ -9,6 +9,13 @@ workflow:
     - to: localiseporpoises
       label: "Lander location and orientation"
       icon: matlab
+      details: >-
+        `lander_array_locations_dep<N>.mat`, saved by `locate_array.m` in the lander
+        super folder. It holds `locstable`, one row per lander, with `landernumber`,
+        `location` and `locationfine` (position), `hprfinal` (heading, pitch and roll),
+        `headingoffset`, `headingstd`, `rtctimeoffset` (the clock offset) and the fit
+        values `chi2` and `chi2fine`. The seabed depth around the array is saved
+        alongside in `bathymetry/lander_array_bathymetry_dep<N>.mat`.
 author: "Jamie Macaulay"
 image: ../images/lander_array_example.png
 toc: true

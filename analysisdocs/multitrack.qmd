@@ -9,6 +9,13 @@ workflow:
     - to: localiseporpoises
       label: "Porpoise click trains from single animals"
       icon: pamguard
+      details: >-
+        The track database written by `cumbiah_multitrack.m` and then checked and
+        tidied in PAMGuard viewer mode: one `pp` event per animal, with its serial
+        number (e.g. `PP1003AA01`) in the event comment. Bearings are still relative to
+        the lander; the heading, pitch and roll are applied during localisation.
+        `lander<N>_dep<D>_multitrack.mat` records the settings and encounters, but the
+        edited database is the version to use.
 author: "Jamie Macaulay"
 image: ../images/multitrack/tracks_PP1003.png
 toc: true
