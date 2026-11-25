@@ -1,7 +1,6 @@
 ---
 title: "Propagation"
-description: "Placeholder page for modelling sound propagation and refraction to correct porpoise slant angles."
-format: html
+description: "Turning sound speed profiles into ray traced propagation lookup tables, so localisation allows for refraction"
 order: 5
 workflow:
   row: 2
@@ -11,12 +10,368 @@ workflow:
       label: "Propagation lookup tables"
       icon: matlab
       details: >-
-        *Draft, to be confirmed.* A `.mat` file containing a struct of propagation
-        lookup tables, one for each time period of the deployment (for example
-        each sound speed profile). Each table gives the refracted arrival slant
-        angle and travel time from ray tracing, as a function of the porpoise's
-        range and depth, so localisation can account for refraction.
-image: ../images/cumbiah-icon.svg
+        `propagation/propagation_tables.mat` in the country folder: a struct array
+        `propagation`, one lookup table per sound speed profile (time period). Each
+        table gives the refracted arrival slant angle (and travel time) at a lander
+        for every porpoise range and depth, traced with BELLHOP. Pass it to
+        `localiseporpoises(..., 'propagation', propagation)` and the table closest
+        in time to each encounter is used.
+author: "Jamie Macaulay"
+image: ../images/propagation/ray_fans.png
+toc: true
+toc-depth: 3
+number-sections: true
+lightbox: true
+fig-align: center
 ---
 
-Placeholder page for sound propagation modelling.
+::: {.callout-note appearance="simple"}
+|  |  |
+|---|---|
+| **MATLAB library** | [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat) |
+| **Scripts used** | `propagation/make_propagation_tables.m`, `propagation/make_propagation_table.m` |
+| **Ray tracer** | MATLAB port of BELLHOP in AcTUP v2.2L, in `~/MATLAB-Drive/MATLAB/ACTUP` |
+| **Worked example** | Denmark, deployment 1 (Oct 24), SonTek CastAway CTD casts from June and September 2025 |
+| **Output** | `<country>/propagation/propagation_tables.mat`, struct array `propagation` |
+:::
+
+# Introduction
+
+Each lander measures the direction a click arrives from: a horizontal bearing and a **slant** (elevation) angle. Localisation crosses these between landers, and assumes sound travels in straight lines. Underwater it doesn't. Sound bends towards slower water, so when the sound speed changes with depth a click from a porpoise near the surface can reach a seabed lander at a quite different angle to the straight line between them.
+
+For the horizontal position this barely matters. For **depth** it matters a lot. Over 150 m, a slant error of 5° moves the porpoise by about 13 m vertically -- most of the water column at a 17 m deep site.
+
+This tutorial turns the sound speed profiles measured at a site into **propagation lookup tables**: for every range and depth around a lander, the slant angle a click really arrives at, worked out by ray tracing with BELLHOP. The localiser then uses those angles in place of straight lines.
+
+The pipeline is deliberately split so that the data source and the physics are kept apart:
+
+```{mermaid}
+%%| fig-align: center
+flowchart LR
+  A["Danish CastAway<br/>.csv casts"] -->|read_castaway| P
+  B["German Excel<br/>spreadsheets"] -->|readtable snippet| P
+  C["Any other source"] -->|your converter| P
+  P(["Sound speed profile<br/>struct (one per cast)"]) -->|make_propagation_table<br/>BELLHOP| T(["Propagation table<br/>struct (one per cast)"])
+  T -->|save as struct array| F[("propagation_tables.mat")]
+  F -->|localiseporpoises| L["3D porpoise tracks"]
+```
+
+Only the first arrow depends on where the data came from. Everything from the **sound speed profile struct** onwards is the same for every country. This tutorial covers:
+
+-   the sound speed profile format that every data source is converted to (@sec-svp-format);
+-   converting the Danish CastAway casts (@sec-danish);
+-   converting other data, such as Excel spreadsheets (@sec-other);
+-   ray tracing a profile with BELLHOP to make a lookup table (@sec-bellhop);
+-   the struct of lookup tables the localisation tutorial needs (@sec-output);
+-   using the tables in localisation, with the Danish example event (@sec-localise).
+
+::: {.callout-tip}
+## Do I need this at all?
+If the water column is well mixed (sound speed changes by only a metre or two per second from surface to seabed), refraction is small and straight lines are fine -- see the June results in @sec-bellhop. It matters when there is a thermocline or halocline, and it matters more the further away the porpoise is. Roughly, beyond 80--100 m from the array in a stratified water column.
+:::
+
+# Before you start
+
+You need:
+
+-   the [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat) library on the MATLAB path, with the `propagation` folder;
+-   **AcTUP v2.2L** in `~/MATLAB-Drive/MATLAB/ACTUP` (or pass its folder with the `'actup'` option). Only its MATLAB BELLHOP files are used, so no compiled Fortran BELLHOP is needed;
+-   the lander array file from [Locate Landers](locatelanders.qmd), `lander_array_locations_dep<D>.mat`, for the position of the array and the depth of the landers;
+-   one or more sound speed profiles taken at or near the array -- ideally during the deployment.
+
+# The sound speed profile format {#sec-svp-format}
+
+Everything downstream takes a **sound speed profile struct**. This is the boundary between the data and the ray tracing: whatever your data look like, write a few lines that make one of these structs per cast and the rest of the tutorial works unchanged.
+
+| Field | Type | Units | Description |
+|---|---|---|---|
+| `depth` | column vector | m | Depth below the sea surface, **positive down** and increasing. Not pressure (see the tip below). |
+| `c` | column vector, same size as `depth` | m/s | Sound speed at each depth. `NaN` samples are ignored. |
+| `time` | `datetime` | UTC | When the profile was measured. Used to choose a table for each encounter. `NaT` if it applies at any time. |
+| `file` | char | -- | A name for the profile, e.g. the cast file name. It names the table and appears in the localisation output. |
+| `lat`, `lon` | double | decimal degrees | Where the profile was measured. Kept for reference. |
+
+Other fields (temperature, salinity, density...) are allowed and ignored. A struct array holds several casts.
+
+That is all. A profile typed in by hand is a valid input:
+
+```matlab
+svp.depth = [0 5 10 12 14 17.5]';           % m, positive down
+svp.c     = [1488 1488 1487 1481 1477 1476]'; % m/s
+svp.time  = datetime(2025, 9, 12, 9, 25, 0); % UTC
+svp.file  = 'example_profile';
+svp.lat   = 56.0; svp.lon = 10.0;
+```
+
+The ray tracing step then does the tidying for you, so the profile does not need to be on a regular grid or reach the seabed:
+
+-   it is **bin averaged onto a 0.5 m grid** from the surface to the seabed, so instrument noise does not create artificial caustics;
+-   above the shallowest sample and below the deepest, the sound speed is **held constant** (with a warning if the cast stops more than 1 m short of the seabed).
+
+::: {.callout-tip}
+## Common gotchas when converting
+-   **Pressure, not depth.** Many CTDs record pressure in dbar. In shallow water 1 dbar ≈ 1 m is close enough (the error is about 1%), or use `gsw_z_from_p` from the [TEOS-10 GSW toolbox](https://www.teos-10.org/software.htm) and flip the sign.
+-   **Down and up casts.** Use the down cast only, or average them -- the ray tracing will average duplicate depths anyway.
+-   **Time zone.** Make `time` UTC, like the PAMGuard data. If a spreadsheet gives local time, set the `TimeZone` and convert it.
+-   **Temperature and salinity only.** Compute sound speed with a published equation (see @sec-other). In the brackish Baltic, use an equation valid at low salinity -- TEOS-10 or Chen & Millero / UNESCO -- not Mackenzie (1981), which is only valid above 25 PSU.
+:::
+
+# Danish data: CastAway CTD casts {#sec-danish}
+
+In Denmark, sound speed profiles were measured with a **SonTek CastAway CTD**. Every cast is a processed `.csv` export in the country folder:
+
+```
+<Denmark superfolder>/All_SVP_CastAway_Data/CC2043006_20250912_092555.csv
+                                            ... (one .csv per cast)
+```
+
+Each file has a header of `% key,value` lines (cast time, start latitude and longitude...) followed by a table with depth, temperature, salinity, sound velocity and density. `read_castaway` is the Danish converter: it reads one file and returns a sound speed profile struct (with the extra fields `temp`, `sal` and `density`):
+
+```matlab
+cast = read_castaway(fullfile(svpfolder, 'CC2043006_20250912_092555.csv'));
+%   file: 'CC2043006_20250912_092555.csv'
+%   time: 12-Sep-2025 09:25:55
+%    lat: ...   lon: ...
+%  depth: [n x 1 double]   c: [n x 1 double]   temp, sal, density
+```
+
+The sound speed is the one the CastAway computes. Duplicate depths are averaged.
+
+There are 29 casts in the Danish folder, from many stations. `load_site_svps` reads all of them and adds each cast's distance from the array, so only those taken at the site are used:
+
+```matlab
+superfolder = getlandersuperfolder('Denmark');
+svpfolder   = fullfile(superfolder, 'All_SVP_CastAway_Data');
+A = load(fullfile(superfolder, 'lander_array_locations_dep1.mat'));
+site  = mean(A.locstable.locationfine, 1);   % [lat lon] of the array
+
+casts = load_site_svps(svpfolder, site);     % every cast, sorted by time
+casts = casts([casts.dist] <= 3000);         % those within 3 km of the array
+```
+
+Three casts were taken within 0.5 km of the array: two on 25 June 2025 and one on 12 September 2025 (@fig-svp).
+
+![Sound speed profiles of the CastAway casts. Left: the casts at the array in colour, and every other station in grey. Right: temperature and salinity of the casts at the array. In June the water is well mixed and the sound speed changes by only 1--2 m/s. In September a thermocline at 10--14 m drops the sound speed by 11 m/s, from 1488 to 1476 m/s.](../images/propagation/svp_profiles.png){#fig-svp}
+
+::: {.callout-warning}
+## No cast from deployment 1
+No CTD cast was taken during deployment 1 (October 2024), the deployment of the example event. The closest profiles we have are from the following June and September. @sec-output explains how to choose between profiles by time of year, and @sec-localise uses the September cast as the worst case.
+:::
+
+# Other data: Excel spreadsheets and the like {#sec-other}
+
+Other teams will have profiles in other formats -- for example, the German team may have Excel spreadsheets of sound speed or of temperature and salinity. These slot in by writing a small converter that makes the same sound speed profile struct as `read_castaway`. Nothing else changes.
+
+As an example, take a spreadsheet `svp_germany.xlsx` with one row per sample and several casts in one sheet:
+
+| Station | Time (UTC) | Lat | Lon | Depth (m) | Temperature (°C) | Salinity (PSU) | Sound speed (m/s) |
+|---|---|---|---|---|---|---|---|
+| GER_A1 | 2025-06-14 10:02 | 54.51 | 11.23 | 0.5 | 16.1 | 9.2 | 1481.3 |
+| GER_A1 | 2025-06-14 10:02 | 54.51 | 11.23 | 1.0 | 16.1 | 9.2 | 1481.3 |
+| ... | | | | | | | |
+
+The converter reads it with `readtable` and splits it into one struct per cast:
+
+```matlab
+function svps = read_svp_excel(xlsfile)
+%READ_SVP_EXCEL Sound speed profile structs from a spreadsheet of casts,
+%one row per sample. Change the column names to match your spreadsheet.
+T = readtable(xlsfile, 'VariableNamingRule', 'preserve');
+
+[g, station] = findgroups(string(T.('Station')));
+for k = max(g):-1:1
+    Tk = T(g == k, :);
+    svps(k).file  = char(station(k));
+    svps(k).time  = Tk.('Time (UTC)')(1);         % datetime (readtable converts Excel dates)
+    svps(k).time.TimeZone = '';                   % keep it UTC with no zone, like PAMGuard
+    svps(k).lat   = Tk.('Lat')(1);
+    svps(k).lon   = Tk.('Lon')(1);
+    svps(k).depth = Tk.('Depth (m)');             % m, positive down
+    svps(k).c     = Tk.('Sound speed (m/s)');     % m/s
+end
+[~, i] = sort([svps.time]);                       % in time order
+svps = svps(i);
+end
+```
+
+If the spreadsheet has **temperature and salinity but no sound speed**, compute it. With the [TEOS-10 GSW toolbox](https://www.teos-10.org/software.htm), which is valid for brackish water:
+
+```matlab
+p  = gsw_p_from_z(-Tk.('Depth (m)'), lat);                 % dbar
+SA = gsw_SA_from_SP(Tk.('Salinity (PSU)'), p, lon, lat);   % absolute salinity
+CT = gsw_CT_from_t(SA, Tk.('Temperature (°C)'), p);        % conservative temperature
+svps(k).c = gsw_sound_speed(SA, CT, p);                    % m/s
+```
+
+Other layouts are just as easy: one sheet per cast (loop over `sheetnames(xlsfile)` and use `readtable(xlsfile, 'Sheet', name)`), a header block of metadata above the table (`'Range'` or `detectImportOptions`), or depths as rows and casts as columns. Whatever the layout, check the result by plotting it before ray tracing:
+
+```matlab
+svps = read_svp_excel('svp_germany.xlsx');
+figure; hold on
+for k = 1:numel(svps)
+    plot(svps(k).c, svps(k).depth, 'DisplayName', svps(k).file);
+end
+set(gca, 'YDir', 'reverse'); xlabel('Sound speed (m/s)'); ylabel('Depth (m)'); legend
+```
+
+::: {.callout-note}
+`read_svp_excel` is not part of the library yet -- it is an example to copy and adapt, since every team's spreadsheet will be laid out differently. Once a team settles on a layout, it can go into `propagation/` alongside `read_castaway`.
+:::
+
+# Ray tracing with BELLHOP {#sec-bellhop}
+
+## What the ray tracing does
+
+`make_propagation_table` turns one sound speed profile struct into one lookup table. It works by **reciprocity**: rather than tracing rays from every possible porpoise position to the lander, it traces rays *from the lander hydrophone outwards*, and the path from the hydrophone to a point is the path a click takes from that point back to the hydrophone.
+
+1.  The profile is gridded to the seabed (@sec-svp-format) and written as a BELLHOP environment file. It is read back with the AcTUP readers, so the profile is set up exactly as BELLHOP sets it up.
+2.  A dense fan of rays, one every 0.02° from −89° to +89°, is traced from the hydrophone with the AcTUP BELLHOP(M) ray tracer (@fig-rays).
+3.  For every point of a range × depth grid, the **direct path eigenray** is found: the ray that passes through that point without bouncing off the surface or seabed. The angle it left the hydrophone at is the slant the click arrives from; the time along it is the travel time.
+4.  Points no direct ray reaches (a **refraction shadow**) take the angle of the nearest point that has one -- the limiting ray, which is where diffracted sound comes from -- and are flagged in `shadow`.
+
+The profile is assumed to be the same at every range (range independent) and the seabed flat. One table therefore serves every lander of an array at the same depth.
+
+![Direct ray paths from a lander hydrophone (red triangle) through the three profiles at the Danish array, every 0.5° from 0 to 20° up. In June the rays are nearly straight. In September the slow water below the thermocline bends the shallow rays back down, so a porpoise in the upper layer cannot be heard below about 7° elevation, however far away it is.](../images/propagation/ray_fans.png){#fig-rays}
+
+## Running it
+
+For one profile:
+
+```matlab
+P = make_propagation_table(svp, 'hdepth', 17);
+```
+
+where `svp` is a sound speed profile struct from any source. A CastAway `.csv` file name also works and is read with `read_castaway`. The options are:
+
+| Option | Default | Description |
+|---|---|---|
+| `'hdepth'` | 17 | Depth of the lander hydrophones (m). Set it to the depth of your landers. |
+| `'seabed'` | `hdepth + 0.5` | Depth of the seabed (m). |
+| `'ranges'` | 0.25 m steps to 20 m, coarser to 1600 m | Horizontal ranges of the table (m). Out to the boat calibration lines of [Locate Landers](locatelanders.qmd). |
+| `'depths'` | 0.25 m steps from 0 to the seabed | Source depths of the table (m). |
+| `'angles'` | `-89:0.02:89` | Launch angles of the ray fan (deg, positive down). |
+
+A table takes a few minutes to trace.
+
+For a set of profiles, trace each one and keep them together as a struct array. This is the same for every data source:
+
+```matlab
+svps = read_svp_excel('svp_germany.xlsx');      % or read_castaway / load_site_svps
+for i = numel(svps):-1:1
+    props(i) = make_propagation_table(svps(i), 'hdepth', hdepth);
+end
+propagation = props;
+save(fullfile(superfolder, 'propagation', 'propagation_tables.mat'), 'propagation');
+```
+
+For the Danish casts, `make_propagation_tables.m` does all of this in one script. Set the inputs at the top:
+
+```matlab
+country    = 'Denmark';
+deployment = 1;
+maxdist    = 3000;      % casts within this distance of the array (m)
+hdepth     = 17;        % hydrophone depth (m)
+overwrite  = true;      % trace a cast again even if its table is saved
+```
+
+It finds the casts within `maxdist` of the array with `load_site_svps`, traces each one, and saves each table as `<cast>_propagation.mat` and all of them together as `propagation_tables.mat`, in a `propagation` folder in the country folder.
+
+::: {.callout-note}
+`make_propagation_tables.m` reads CastAway files only. For another country, the five-line loop above with your own converter does the same job -- there is no need to change the script.
+:::
+
+## What refraction does at the Danish site
+
+@fig-bias compares the ray traced slant with the straight line for the three casts at the array.
+
+-   **June** (well mixed): the slant is out by less than 1°, and a straight line localiser would put a porpoise 1--4 m too shallow at 150--250 m. Small next to the bearing noise.
+-   **September** (thermocline at 10--14 m): the slant is out by 3° at 100 m and 5--6° at 150--200 m. A straight line puts a porpoise 6 m too shallow at 100 m, 14 m at 150 m and 20 m at 200 m -- shallow porpoises get pushed up to the surface beyond about 100 m.
+
+Of the other casts in the folder, those with more than 4 m/s of sound speed change in the top 17 m give depth errors of 1--8 m at 150 m. So it is stratification, not location, that matters.
+
+![Left: slant bias, the ray traced slant minus the straight line slant, against the porpoise's range and depth. Right: how far the depth from a straight line localiser is from the true depth (blue is too shallow). Top two rows: the June casts. Bottom row: September.](../images/propagation/slant_bias_maps.png){#fig-bias}
+
+::: {.callout-tip}
+## Checks
+-   An **isovelocity** profile (constant `c`) should give zero bias everywhere. This checks the tracer and the eigenray search.
+-   Look at `100*mean(P.shadow(:))`, the percentage of the table in shadow, which `make_propagation_tables.m` prints. Shadows are expected with a strong thermocline (above the turning rays in @fig-rays), but a large shadow in a well mixed profile means something is wrong with the profile -- usually its depth units or sign.
+-   No direct path arrives below about +0.2° in any Danish profile, so the −10° minimum slant cut-off used in localisation never removes a real click because of refraction.
+:::
+
+# The propagation lookup tables {#sec-output}
+
+The output of this tutorial, and the input to localisation, is a **struct array of propagation tables**, one per sound speed profile, saved as the variable `propagation` in
+
+```
+<country superfolder>/propagation/propagation_tables.mat
+```
+
+Each profile stands for the time period around when it was measured: the localiser picks the table closest in time to each encounter. Each element has these fields:
+
+| Field | Size | Units | Description |
+|---|---|---|---|
+| `type` | char | -- | `'raytrace'` (or `'straight'`, see below) |
+| `time` | datetime | UTC | Time of the profile. Used to pick the table for each encounter. |
+| `soundspeed` | scalar | m/s | Sound speed at the hydrophones. The time delays across a lander's hydrophones are computed with it. |
+| `meanspeed` | scalar | m/s | Mean sound speed over the water column. |
+| `hdepth` | scalar | m | Hydrophone depth the table is for. |
+| `seabed` | scalar | m | Seabed depth. |
+| `ranges` | 1 × nr | m | Horizontal ranges from the lander. |
+| `depths` | 1 × nd | m | Source (porpoise) depths. |
+| `slant` | nr × nd | deg, + up | Elevation the click arrives from at the lander. **This is what the localiser uses.** |
+| `tau` | nr × nd | s | Travel time along the ray. Stored, but not used at present (see below). |
+| `shadow` | nr × nd | logical | True where no direct ray reaches; `slant` and `tau` there come from the nearest point that has one. |
+| `z`, `c` | column vectors | m, m/s | The gridded profile that was traced. |
+| `source`, `lat`, `lon` | | | Name and position of the profile. |
+| `created`, `method` | | | When and how the table was made. |
+
+::: {.callout-note}
+## Why only the slant is used
+The hydrophones of one lander are only a few centimetres apart, so over the lander a click is a plane wave. The time delays between its hydrophones are set entirely by the direction the wavefront arrives from -- the azimuth (the same as the straight line, since the profile does not change with range) and the refracted slant from the table -- and the sound speed at the hydrophones. `propagation_delays` builds the delays this way. The travel times `tau` would be needed to use time delays *between* landers, and are kept for that.
+:::
+
+## Choosing a table for each time period
+
+The struct array can mix ray traced tables with **straight line** entries made by `straight_propagation(time, soundspeed)`, for example for a well mixed time of year:
+
+```matlab
+S = load(fullfile(superfolder, 'propagation', 'propagation_tables.mat'));
+propagation = S.propagation;
+% a well mixed winter: straight lines at 1475 m/s
+propagation(end+1) = straight_propagation(datetime(2025, 1, 15), 1475);
+```
+
+For each encounter, `select_propagation` picks the entry whose `time` is closest:
+
+-   **`'time'`** (default) compares full dates. Use it when profiles were measured during the deployment.
+-   **`'season'`** compares the time of year and ignores the year. Use it when, as for Danish deployment 1, the profiles come from another year and you assume the water column follows the seasons.
+
+An entry with `time = NaT` is only used if no entry has a time.
+
+# Using the tables in localisation {#sec-localise}
+
+Load the struct array and pass it to `localiseporpoises` (see [Localise Porpoises](localiseporpoises.qmd)):
+
+```matlab
+S = load(fullfile(getlandersuperfolder('Denmark'), 'propagation', 'propagation_tables.mat'));
+loctracks = localiseporpoises(landers, arrayfile, ...
+    'propagation', S.propagation, 'propagationmatch', 'season');
+```
+
+Each localised track records which table was used in `propagation`, and the settings saved with the results list the time, type and source of every table. Without `'propagation'`, the localiser uses straight lines at `'soundspeed'` (1500 m/s by default). The real sound speed at the Danish landers is 1476--1488 m/s, so even straight lines are better with the measured sound speed.
+
+## The Danish example event
+
+The test script `localise_porpoises/_test/test_localise_propagation.m` localises the example event used in the other tutorials -- Denmark landers 1--3, **20 October 2024, 15:46:00--15:50:30** -- twice: once with straight lines at the sound speed at the landers, and once with the ray traced table of the September 2025 cast. Since there is no cast from October 2024, the September cast is used as the worst case. The only difference between the runs is how the time delays are predicted.
+
+![The example event localised with straight lines at 1476.5 m/s (blue) and with the ray traced table of the September 2025 cast (red). The yellow triangles are the landers and the dashed circle is 150 m from the middle of the array.](../images/propagation/propagation_tracks.png){#fig-tracks}
+
+Within about 100 m of the array the two sets of tracks mostly agree in depth to within a few metres. Further out, beyond 110 m, the ray traced depths differ by up to 10--15 m, as @fig-bias predicts. Refraction matters for porpoises beyond roughly 80--100 m in a stratified water column -- exactly where the straight line localiser pushes animals up to the surface.
+
+# Assumptions and limitations
+
+-   **Range independent profile and flat seabed.** One profile is used for the whole array and out to the edge of the table.
+-   **One hydrophone depth per table.** A lander at a different depth is looked up as if the porpoise were the same height above it, so keep `hdepth` close to the real lander depth, or make a table per depth.
+-   **Direct path only.** Surface and seabed echoes are not in the table. Echoes are removed earlier, when tracking (see [Automatic Porpoise Bearing Tracks](multitrack.qmd)).
+-   **Profiles are snapshots.** A profile measured months from the encounter (as for Danish deployment 1) is a best guess. If profiles from different times give very different tracks, treat depths beyond 100 m with caution.
+-   **Future work.** The travel times `tau` could be used for time delays between landers, and the ray tracing could be built into the particle filter's location model directly.
