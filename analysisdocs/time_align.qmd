@@ -16,3 +16,29 @@ workflow:
         SoundTrap landers so they can be matched to the localised dive tracks.
 image: ../images/cumbiah-icon.svg
 ---
+
+::: {.callout-warning}
+This tutorial is still to be written. The sections below are a draft of what it needs and produces.
+:::
+
+# Pre-requisites {#sec-prereq}
+
+## Data
+
+-   The CPOD/FPOD detections from the CPODs around the array (see [Tracking Porpoises with PAMGuard](pamguard.qmd#sec-cpod) for viewing them alongside the lander data).
+-   The lander click detections from [Tracking Porpoises with PAMGuard](pamguard.qmd).
+-   *To be confirmed.*
+
+## Software
+
+*To be confirmed.*
+
+# Introduction
+
+Placeholder page for time aligning CPODs and tracks.
+
+# Outputs for next section {#sec-outputs}
+
+| Output | Used in |
+|--------------------|----------------------------------------------------|
+| *Draft:* a `.mat` file of CPOD/FPOD porpoise detections with their times corrected to the same clock as the SoundTrap landers | [Determining distance to CPODs](CPOD_det_dist.qmd) |
