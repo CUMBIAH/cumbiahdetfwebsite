@@ -7,6 +7,7 @@
 //   workflow:
 //     row: 2
 //     col: 1
+//     goal: true                  # optional: highlight as the project goal
 //     outputs:
 //       - to: multitrack          # file name of the target document, no .qmd
 //         label: "PAMGuard data"  # text shown on the arrow
@@ -62,7 +63,8 @@ for (const item of items) {
 %>
 
 ```{=html}
-<div class="workflow-node" data-wf-id="<%- stem(item) %>" style="<%- pos %>">
+<div class="workflow-node<%- wf.goal ? ' is-goal' : '' %>" data-wf-id="<%- stem(item) %>" style="<%- pos %>">
+<% if (wf.goal) { %><span class="workflow-goal-badge">&#9733; Project goal</span><% } %>
 <a href="<%- item.path %>" class="quarto-grid-link">
 <div class="quarto-grid-item card h-100 card-left">
 ```
