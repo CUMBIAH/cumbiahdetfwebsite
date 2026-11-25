@@ -506,7 +506,7 @@ The rest -- hydrophones, releaser, CPOD, sensor data -- is carried along for oth
 ::: {.callout-important}
 ### Serial numbers must be unique
 
-`getlanderpaths` takes the first country that recognises a SoundTrap at a given time. If the same serial number were in two countries' spreadsheets with overlapping deployment windows, it would silently return the first one in the list. That cannot happen with SoundTraps - one instrument cannot be in two seas at once -- but it can happen through a typo in a serial number, so check new spreadsheets against the existing ones.
+`getlanderpaths` takes the first country that recognises a SoundTrap at a given time. If the same serial number were in two countries' spreadsheets with overlapping deployment windows, it would silently return the first one in the list. That cannot happen with SoundTraps - one instrument cannot be in two seas at once but it can happen through a typo in a serial number, so check new spreadsheets against the existing ones.
 :::
 
 ### The` superfolder` function and new machines
@@ -595,9 +595,9 @@ and then draws the array over the seabed.
 
 ![Drop and calculated positions of the CUMBIAH landers, deployment 1, plotted in metres east and north of the mean drop position over the KattegatSouth depth model. Open circles are drop positions, filled circles are calculated positions, and the dotted line between each pair shows how far the lander moved on the way down.](../images/lander_array_example.png){#fig-array}
 
-The legend is useful; for each lander it gives the distance between the drop and the calculated position, and for each *pair* of landers it gives the separation between their calculated positions. Those inter-lander distances are what the porpoise triangulation depends on, and they are worth checking against the nominal array design -- the landers were laid out as roughly 30 m triangles.
+The legend provides the distance between the drop and the calculated position for each lander, and for each *pair* of landers it gives the separation between their calculated positions. The inter-lander distances should be roughly the same as the intended lander array design for SAMBAH 2 --  roughly 30 m triangles.
 
-In @fig-array, landers 1 and 2 landed within a few metres of where they were dropped, while lander 3 moved 19.6 m north. That is a real displacement, not an artefact: it is exactly the sort of thing this whole exercise exists to measure, and using the drop positions instead would have put every bearing from lander 3 nearly 20 m out.
+In @fig-array, lander 1 landed within a few metres of where it was dropped, while landers 2 and 3 moved ~14 m and 20 m south respectively. That is not an artefact: assuming the drop positions would have put every bearing from lander 2 and 3 nearly up to 20 m out.
 
 Set `plotgps = true` to drape the boat's GPS track over the seabed as well, which is a quick way of seeing what geometry each lander's calibration actually had.
 
