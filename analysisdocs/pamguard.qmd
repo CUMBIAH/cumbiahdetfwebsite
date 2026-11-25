@@ -56,6 +56,21 @@ fig-align: center
 | **Data folder** | `lander1/data` |
 :::
 
+# Pre-requisites {#sec-prereq}
+
+## Data
+
+-   The raw recordings from the four channel SoundTrap ST640 on each lander, as `.sud` files (the ***audio*** folder). PAMGuard reads `.sud` files directly, so there is no need to decompress them first.
+-   The hydrophone array file for the lander, e.g. `lander1_Denmark_array.paf`, in the data folder.
+-   *Optional:* the CPOD/FPOD data from the CPOD on the lander, for @sec-cpod.
+
+## Software
+
+| Requirement | What it is needed for |
+|--------------------|----------------------------------------------------|
+| [PAMGuard](https://www.pamguard.org) 2.02.18 or later | Detecting, classifying and annotating clicks. Use the latest version, or the version this tutorial was last tested on. |
+| [PamBinaries](https://github.com/TaikiSan21/PamBinaries) (R) or [PAMGuardMatlab](https://github.com/PAMGuard/PAMGuardMatlab) (MATLAB) | *Optional:* reading PAMGuard binary files programmatically (@sec-exporting) |
+
 # Introduction
 
 Baltic harbour porpoises are a protected subspecies under threat from habitat degradation and bycatch in static fishing nets. Monitoring their distribution and abundance is crucial for guiding conservation and regulatory efforts. Porpoises are usually undemonstrative animals, and the Baltic is a large area, much of which has a very low density of porpoises. The strategy for abundance estimation has therefore been to use passive acoustic monitoring; specifically, the use of long-term autonomous recorders distributed across the entire Baltic and monitoring for a year.
@@ -72,7 +87,7 @@ The aim of this tutorial is to process data from the hydrophone clusters, identi
 
 Before we can localise the position of porpoises we first have to detect and classify their tell-tale narrow band high frequency (NBHF) clicks. PAMGuard has a comprehensive click detection and classification module that can be used for this. In this first section we will run the click detector on raw acoustic data, extract clicks and classify to porpoise.
 
-First make sure that the latest version or the version of PAMGuard this tutorial was last tested on is installed. Open PAMGuard (Normal mode). When prompted, create a new. psfx settings file. Name it and save it somewhere sensible You will be presented with a blank canvas.
+Open PAMGuard (Normal mode). When prompted, create a new. psfx settings file. Name it and save it somewhere sensible You will be presented with a blank canvas.
 
 ![When PAMGuard is first started it is essentially a blank canvas. You have to add modules to construct an acoustic workflow – this is called the “data model”.](../images/pamguard/image1.png){#fig-1}
 
@@ -315,7 +330,7 @@ Once happy with the click bearings settings reprocess the entire dataset using t
 ![Reprocessing the entire dataset. Click classifications and bearings will be re-classified.](../images/pamguard/image36.png){#fig-33 width="481"}
 
 
-# Annotating clicks
+# Annotating clicks {#sec-annotating}
 
 Now that we have classified clicks, we can efficiently navigate to interesting sections of the dataset and manually annotate events. This can be done click-by-click, or by storing multiple clicks belonging to the same event in a single move.
 
@@ -400,7 +415,7 @@ Some standards we would recommend
 
 -   Give each event a serial number in the comment section. For events which match on different arrays, set the same serial number.
 
-# Exporting bearings
+# Exporting bearings {#sec-exporting}
 
 There are currently three ways in which data can be exporting in PAMGuard, programmatically through MATLAB ([PAMGuardMatlab](https://github.com/PAMGuard/PAMGuardMatlab)), R ([PamBinaries](https://github.com/TaikiSan21/PamBinaries)) (Python coming soon), to an external database such as Tethys or directly via the exporter.
 
@@ -439,7 +454,7 @@ clicks = load("/Users/myusername/PAM_2019_11_14_125025_Tracked_Events.RData")
 
 The clicks variable will appear as a structure in the workspace which can then be accessed programmatically.
 
-# Comparing to CPOD data to SoundTrap recordings
+# Comparing to CPOD data to SoundTrap recordings {#sec-cpod}
 
 Each lander also had an associated CPOD. It is useful to visualise the CPOD data alongside the lander data, especially for investigation time offsets and getting a feel for detectability.
 
@@ -509,3 +524,19 @@ Have a go visualising the CPOD data in other ways -- for example try plotting as
 Next, we want to compare CPOD data to click data. To do this, we will add another panel to the graph by clicking the ***+*Plot** button at the top of the time display. This will add a new plot. Click ***+Data*** and add ***Click Detector, Clicks.*** You may need to move to a new section of data to
 
 ![](../images/pamguard/image60.png)
+
+# Outputs for next section {#sec-outputs}
+
+The PAMGuard data from this tutorial are the input to the next two tutorials.
+
+| Output | Used in |
+|--------------------|----------------------------------------------------|
+| The **binary store** (`Click_Detector_Click_Detector_Clicks_*.pgdf` files, in `yyyyMMdd` day folders), with clicks classified as porpoise and bearings calculated | [Automatic Porpoise Bearing Tracks](multitrack.qmd) and [Locating the Landers](locatelanders.qmd) |
+| The **PAMGuard database** (`.sqlite3`) that belongs to the binary store | [Automatic Porpoise Bearing Tracks](multitrack.qmd) and [Locating the Landers](locatelanders.qmd), where the boat calibration transients are marked as `bc` events |
+
+[Locating the Landers](locatelanders.qmd) also needs the **GPS track of the boat** during the calibration trials. That comes from the boat, not from PAMGuard.
+
+::: {.callout-tip}
+## Marking click trains by hand instead
+Click trains can also be marked by hand as described in @sec-annotating, rather than with [Automatic Porpoise Bearing Tracks](multitrack.qmd). The result is in exactly the same format -- one `pp` click event per animal in the PAMGuard database -- so it can go straight to [Localise Porpoises](localiseporpoises.qmd).
+:::

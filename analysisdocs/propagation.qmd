@@ -35,6 +35,20 @@ fig-align: center
 | **Output** | `<country>/propagation/propagation_tables.mat`, struct array `propagation` |
 :::
 
+# Pre-requisites {#sec-prereq}
+
+## Data
+
+-   The lander array file from [Locating the Landers](locatelanders.qmd), `lander_array_locations_dep<D>.mat`, for the position of the array and the depth of the landers.
+-   One or more sound speed profiles taken at or near the array -- ideally during the deployment.
+
+## Software
+
+| Requirement | What it is needed for |
+|--------------------|----------------------------------------------------|
+| [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat), with the `propagation` folder | Converting profiles and making the lookup tables |
+| **AcTUP v2.2L** in `~/MATLAB-Drive/MATLAB/ACTUP` (or pass its folder with the `'actup'` option) | Ray tracing. Only its MATLAB BELLHOP files are used, so no compiled Fortran BELLHOP is needed. |
+
 # Introduction
 
 Each lander measures the direction a click arrives from: a horizontal bearing and a **slant** (elevation) angle. Localisation crosses these between landers, and assumes sound travels in straight lines. Underwater it doesn't. Sound bends towards slower water, so when the sound speed changes with depth a click from a porpoise near the surface can reach a seabed lander at a quite different angle to the straight line between them.
@@ -69,15 +83,6 @@ Only the first arrow depends on where the data came from. Everything from the **
 ## Do I need this at all?
 If the water column is well mixed (sound speed changes by only a metre or two per second from surface to seabed), refraction is small and straight lines are fine -- see the June results in @sec-bellhop. It matters when there is a thermocline or halocline, and it matters more the further away the porpoise is. Roughly, beyond 80--100 m from the array in a stratified water column.
 :::
-
-# Before you start
-
-You need:
-
--   the [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat) library on the MATLAB path, with the `propagation` folder;
--   **AcTUP v2.2L** in `~/MATLAB-Drive/MATLAB/ACTUP` (or pass its folder with the `'actup'` option). Only its MATLAB BELLHOP files are used, so no compiled Fortran BELLHOP is needed;
--   the lander array file from [Locate Landers](locatelanders.qmd), `lander_array_locations_dep<D>.mat`, for the position of the array and the depth of the landers;
--   one or more sound speed profiles taken at or near the array -- ideally during the deployment.
 
 # The sound speed profile format {#sec-svp-format}
 
@@ -375,3 +380,9 @@ Within about 100 m of the array the two sets of tracks mostly agree in depth to 
 -   **Direct path only.** Surface and seabed echoes are not in the table. Echoes are removed earlier, when tracking (see [Automatic Porpoise Bearing Tracks](multitrack.qmd)).
 -   **Profiles are snapshots.** A profile measured months from the encounter (as for Danish deployment 1) is a best guess. If profiles from different times give very different tracks, treat depths beyond 100 m with caution.
 -   **Future work.** The travel times `tau` could be used for time delays between landers, and the ray tracing could be built into the particle filter's location model directly.
+
+# Outputs for next section {#sec-outputs}
+
+| Output | Used in |
+|--------------------|----------------------------------------------------|
+| `<country superfolder>/propagation/propagation_tables.mat`: the struct array `propagation`, one lookup table per sound speed profile (time period), giving the refracted arrival slant angle and travel time for every porpoise range and depth. The fields are listed in @sec-output. | [Localise Porpoises](localiseporpoises.qmd), passed as `'propagation'` (@sec-localise) |

@@ -38,6 +38,42 @@ fig-align: center
 {{< video https://www.youtube.com/watch?v=-yFiV9IhPIo >}}
 
 
+# Pre-requisites {#sec-prereq}
+
+## Data {#data-pre}
+
+From the earlier tutorials you need:
+
+-   the PAMGuard **binary store** and **database** for each lander, from [Tracking Porpoises with PAMGuard](pamguard.qmd). The boat calibration transients are marked as `bc` events in the database as part of this tutorial (@sec-pamguard);
+-   the **GPS track of the boat** during the calibration trials;
+-   *optional:* a time series of lander orientation from [Modelling lander movement](lander_movement.qmd), if a lander moved during the deployment.
+
+
+In MATLAB, each lander is described by a struct with the following fields (see @data-management for how it is built). 
+
+-   `landernumber`, which must not be empty;
+-   `startTime`, which picks the calibration day;
+-   `droplocation`, the centre of the coarse search when you pass `'gridcenter', data.droplocation`;
+-   `sqlitedB`, with `rawsqlitedB` as a fallback. If the annotated database has no `bc` events, `locateplatform` warns and reads the calibration events from the raw one instead;
+-   `binaryfolder`. This must contain PAMGuard's usual day folders (`yyyyMMdd`), because `locateplatform` reads the clicks from `binaryfolder/<calibration day>`;
+-   `gpsfile`, a `.mat` file holding a table called `gpsdata` with columns `time` (datetime), `latitude` and `longitude`. This is the track of the boat making the transient sounds. 
+
+::: {.callout-note}
+Note that, because .gpx is a difficult format to work with sometimes, the GPS file of the boat track is a .mat file. There are lots of tools to convert GPS data online - use whatever works.
+:::
+
+## Software
+
+The MATLAB side needs rather more on the path than the `cumbiah_landers_mat` repository alone.
+
+| Requirement | What it is needed for |
+|--------------------|----------------------------------------------------|
+| [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat) | The library itself: `locateplatform`, `getlanderdeploymentinfo`, `getlanderpaths` and the per-country functions behind them, `getlandersuperfolder` |
+| [PAMGuardMatlab](https://github.com/PAMGuard/PAMGuardMatlab) | The `pgmatlab` package, used to read the click waveforms and bearings out of the PAMGuard binary store |
+| [soundnetloc_mat](https://github.com/Sound-Net/soundnetloc_mat) | `grdsrch_pos`, `grdsrch_pos_hpr`, `st_loc_chi2`, `interpsrcloc`, `plot_chi2_surf`, `plot_clk_src_bearings` -- the grid search and its plotting helpers, `latLong2meters`, `latLong2bearing`, `getsuperfolder`, `getdefaultcols` |
+| MATLAB **Database Toolbox** | `sqlite`, used to read the `bc` events out of the PAMGuard database |
+| MATLAB **Mapping Toolbox** | `readgeoraster`, `mapcrop`, `projfwd` -- only needed by `locate_array.m` for the bathymetry |
+
 # Introduction
 
 Each CUMBIAH lander carries a small array of four hydrophones, and that array measures the 3D bearing to any sound it detects. If two or more landers detect the same porpoise click, the bearings can be triangulated and a detected porpoise located. None of that works, though, unless we know two things about every lander to within a metre or two and a degree or two:
@@ -53,8 +89,6 @@ This tutorial covers the theory and workflow:
 -   marking the cavitation transients as events in PAMGuard viewer mode (@sec-pamguard);
 -   checking a single lander with `locate_platform.m` and reading the diagnostic plots (@sec-locate-platform);
 -   running `locate_array.m` to locate every lander in a deployment and save the result (@sec-locate-array).
-
-# Pre-requisites
 
 # How the grid search works {#sec-theory}
 
@@ -214,34 +248,6 @@ Note that this is just one section of a calibration trial. As many of the passes
 Once the events are saved, the annotated database (`lander<N>_<Site>_database_annotated.sqlite3`, e.g. `lander1_Denmark_database_annotated.sqlite3`) holds the calibration events and the binary store holds the clicks themselves. That is everything the MATLAB side needs.
 
 # Checking one lander: `locate_platform.m` {#sec-locate-platform}
-
-## MATLAB library prerequisites
-
-The MATLAB side needs rather more on the path than the `cumbiah_landers_mat` repository alone.
-
-| Requirement | What it is needed for |
-|--------------------|----------------------------------------------------|
-| [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat) | The library itself: `locateplatform`, `getlanderdeploymentinfo`, `getlanderpaths` and the per-country functions behind them, `getlandersuperfolder` |
-| [PAMGuardMatlab](https://github.com/PAMGuard/PAMGuardMatlab) | The `pgmatlab` package, used to read the click waveforms and bearings out of the PAMGuard binary store |
-| [soundnetloc_mat](https://github.com/Sound-Net/soundnetloc_mat) | `grdsrch_pos`, `grdsrch_pos_hpr`, `st_loc_chi2`, `interpsrcloc`, `plot_chi2_surf`, `plot_clk_src_bearings` -- the grid search and its plotting helpers, `latLong2meters`, `latLong2bearing`, `getsuperfolder`, `getdefaultcols` |
-| MATLAB **Database Toolbox** | `sqlite`, used to read the `bc` events out of the PAMGuard database |
-| MATLAB **Mapping Toolbox** | `readgeoraster`, `mapcrop`, `projfwd` -- only needed by `locate_array.m` for the bathymetry |
-
-## Data pre-requisistes {#data-pre}
-
-To locate a lander a MATLAB struct is required with the following fields. 
-
--   `landernumber`, which must not be empty;
--   `startTime`, which picks the calibration day;
--   `droplocation`, the centre of the coarse search when you pass `'gridcenter', data.droplocation`;
--   `sqlitedB`, with `rawsqlitedB` as a fallback. If the annotated database has no `bc` events, `locateplatform` warns and reads the calibration events from the raw one instead;
--   `binaryfolder`. This must contain PAMGuard's usual day folders (`yyyyMMdd`), because `locateplatform` reads the clicks from `binaryfolder/<calibration day>`;
--   `gpsfile`, a `.mat` file holding a table called `gpsdata` with columns `time` (datetime), `latitude` and `longitude`. This is the track of the boat making the transient sounds. 
-
-::: {.callout-note}
-Note that, because .gpx is a difficult format to work with sometimes, the GPS file of the boat track is a .mat file. There are lots of tools to convert GPS data online - use whatever works.
-:::
-
 
 ## Running the functions
 
@@ -558,7 +564,7 @@ reextractbathy = false;  % force the bathymetry to be cut from the grid again
 
 `zexag` deserves a comment: the seabed here changes by around a metre per kilometre, so without a vertical exaggeration of about ×100 the bathymetry is indistinguishable from a flat plane.
 
-## What gets saved
+## What gets saved {#sec-array-saved}
 
 The localisation is slow -- minutes per lander -- so the results are cached:
 
@@ -615,6 +621,11 @@ end
 
 The calculated position plotted for that lander is then the one you set, with only the clock offset and orientation fitted around it.
 
-# Next steps
+# Outputs for next section {#sec-outputs}
 
-With every lander in a deployment located and oriented, the bearings from each cluster can be geo-referenced properly and matched clicks triangulated between landers. That is covered in [Localise Porpoises](localiseporpoises.qmd).
+With every lander in a deployment located and oriented, the bearings from each lander can be geo-referenced and matched clicks crossed between landers. `locate_array.m` saves (@sec-array-saved):
+
+| Output | Used in |
+|--------------------|----------------------------------------------------|
+| `lander_array_locations_dep<N>.mat` in the lander super folder: `locstable`, one row per lander, with `landernumber`, `location` and `locationfine` (position), `hprfinal` (heading, pitch and roll), `headingoffset`, `headingstd`, `rtctimeoffset` (the clock offset), `chi2` and `chi2fine` | [Localise Porpoises](localiseporpoises.qmd), and [Propagation](propagation.qmd) for the position and depth of the array |
+| `bathymetry/lander_array_bathymetry_dep<N>.mat`: the seabed depth around the array | [Localise Porpoises](localiseporpoises.qmd) |

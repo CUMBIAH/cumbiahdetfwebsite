@@ -37,6 +37,53 @@ fig-align: center
 
 {{< video https://www.youtube.com/embed/XrXJVqzPRjM title="Automatic porpoise bearing tracks" aspect-ratio="16x9" >}}
 
+# Pre-requisites {#sec-prereq}
+
+## Data
+
+This tutorial assumes the lander has already been processed in PAMGuard as described in [Tracking Porpoises with PAMGuard](pamguard.qmd), so that you have:
+
+-   a **binary store** holding the click detections (`Click_Detector_Click_Detector_Clicks_*.pgdf` files), with clicks classified as porpoise and bearings calculated;
+-   a **PAMGuard database** (`.sqlite3`) belonging to that binary store.
+
+It also assumes the lander is known to the data management functions `getlanderdeploymentinfo` and `getlanderpaths`, which is how the script finds the binary store and the deployment times from a country, lander number and deployment number. These are described in [Locating the Landers](locatelanders.qmd#data-management).
+
+::: {.callout-note}
+## Data management function
+Note that these functions are not entirely required but they are convenient - it's trivial to convert the scipt to hardware the inputs as a database and binary folder path. 
+:::
+
+
+::: {.callout-tip}
+## Mark the boat calibration first
+The cavitation transients of the boat calibration trials are full of clicks that are classified as porpoise. The script leaves out any period covered by a `bc` event, so mark those out first ([Locating the Landers](locatelanders.qmd#sec-pamguard)) or the calibration will turn up as a very busy porpoise encounter.  Note: the location, orientation or position of landers is not known.
+:::
+
+## Software
+
+| Requirement | What it is needed for |
+|--------------------|----------------------------------------------------|
+| [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat) | The script itself, plus `getlanderdeploymentinfo`, `getlanderpaths` and `getlandersuperfolder` |
+| [soundnetloc_mat](https://github.com/Sound-Net/soundnetloc_mat) | The tracking code in `click_train_tracking`: `find_encounters`, `track_bearings`, `plot_bearing_tracks` and `write_track_events` |
+| [PAMGuardMatlab](https://github.com/PAMGuard/PAMGuardMatlab) | Reading the clicks from the PAMGuard binary files |
+| MATLAB **Database Toolbox** | `sqlite`, used to read and write the PAMGuard database |
+
+## A database for the tracks
+
+The script writes into a PAMGuard database, and it will only write into one you have named yourself. Make a **copy of the lander's database** and give it a name that says what it is for, for example
+
+```
+lander1/lander1_Denmark_database.sqlite3   <- your existing database
+lander1/lander1_Denmark_database_porpoise.sqlite3    <- copy, for the tracks
+```
+
+Working on a copy means the automatic tracks can be deleted and re-written as often as you like without any risk to the events you have already marked by hand. Because it is a copy, it still contains the `bc` events and still belongs to the same binary store.
+
+::: {.callout-warning}
+## Close PAMGuard before running the script
+Do not have the track database open in PAMGuard while MATLAB is writing to it. Close PAMGuard, run the script, then open PAMGuard again.
+:::
+
 # Introduction
 
 To localise a porpoise we need to know which clicks on a lander came from the same animal. Until now that has meant marking out every click train by hand in PAMGuard, as described in [Tracking Porpoises with PAMGuard](pamguard.qmd#annotating-clicks). With up to nine landers per country and months of data per lander, that is a huge amount of manual work - especially for Denmark where there are loads of porpoises! 
@@ -53,7 +100,6 @@ The tracks are then ordinary PAMGuard click events. You open the database in vie
 This tutorial covers:
 
 -   how the algorithm works (@sec-how-works);
--   what you need before you start (@sec-prereq);
 -   running the script and its settings (@sec-running);
 -   how the serial numbers of the events work (@sec-serial);
 -   the files the script produces and how to read the diagnostic figure (@sec-output);
@@ -127,53 +173,6 @@ Each step fails in its own way, and it helps to know which you are looking at wh
 -   good clicks further than `clickTol` from the curve are **left out** of a track, and a few echoes or clicks from another animal close to the curve are **included**.
 :::
 
-
-# Pre-requisites {#sec-prereq}
-
-## Data
-
-This tutorial assumes the lander has already been processed in PAMGuard as described in [Tracking Porpoises with PAMGuard](pamguard.qmd), so that you have:
-
--   a **binary store** holding the click detections (`Click_Detector_Click_Detector_Clicks_*.pgdf` files), with clicks classified as porpoise and bearings calculated;
--   a **PAMGuard database** (`.sqlite3`) belonging to that binary store.
-
-It also assumes the lander is known to the data management functions `getlanderdeploymentinfo` and `getlanderpaths`, which is how the script finds the binary store and the deployment times from a country, lander number and deployment number. These are described in [Locating the Landers](locatelanders.qmd#data-management).
-
-::: {.callout-note}
-## Data management function
-Note that these functions are not entirely required but they are convenient - it's trivial to convert the scipt to hardware the inputs as a database and binary folder path. 
-:::
-
-
-::: {.callout-tip}
-## Mark the boat calibration first
-The cavitation transients of the boat calibration trials are full of clicks that are classified as porpoise. The script leaves out any period covered by a `bc` event, so mark those out first ([Locating the Landers](locatelanders.qmd#sec-pamguard)) or the calibration will turn up as a very busy porpoise encounter.  Note: the location, orientation or position of landers is not known.
-:::
-
-## MATLAB libraries
-
-| Requirement | What it is needed for |
-|--------------------|----------------------------------------------------|
-| [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat) | The script itself, plus `getlanderdeploymentinfo`, `getlanderpaths` and `getlandersuperfolder` |
-| [soundnetloc_mat](https://github.com/Sound-Net/soundnetloc_mat) | The tracking code in `click_train_tracking`: `find_encounters`, `track_bearings`, `plot_bearing_tracks` and `write_track_events` |
-| [PAMGuardMatlab](https://github.com/PAMGuard/PAMGuardMatlab) | Reading the clicks from the PAMGuard binary files |
-| MATLAB **Database Toolbox** | `sqlite`, used to read and write the PAMGuard database |
-
-## A database for the tracks
-
-The script writes into a PAMGuard database, and it will only write into one you have named yourself. Make a **copy of the lander's database** and give it a name that says what it is for, for example
-
-```
-lander1/lander1_Denmark_database.sqlite3   <- your existing database
-lander1/lander1_Denmark_database_porpoise.sqlite3    <- copy, for the tracks
-```
-
-Working on a copy means the automatic tracks can be deleted and re-written as often as you like without any risk to the events you have already marked by hand. Because it is a copy, it still contains the `bc` events and still belongs to the same binary store.
-
-::: {.callout-warning}
-## Close PAMGuard before running the script
-Do not have the track database open in PAMGuard while MATLAB is writing to it. Close PAMGuard, run the script, then open PAMGuard again.
-:::
 
 # Running `cumbiah_multitrack.m` {#sec-running}
 
@@ -455,3 +454,14 @@ A sensible way of working is therefore:
 | The tracks do not show in PAMGuard | Check you opened `trackdb` and not the original database, and that clicks are coloured by event. |
 | The database is locked, or edits vanish | PAMGuard and MATLAB had the database open at the same time. |
 | Changed settings but the same clicks load | The click cache is only rebuilt when `tlims`, `porptype` or `minamp` change. Delete the `cumbiah_multitrack` folder in MATLAB's `tempdir` to force a reload, e.g. after reprocessing clicks in PAMGuard. |
+
+# Outputs for next section {#sec-outputs}
+
+Once the tracks have been checked and tidied in PAMGuard (@sec-pamguard), the **track database** (`trackdb`) is the input to [Localise Porpoises](localiseporpoises.qmd):
+
+| Output | Used in |
+|--------------------|----------------------------------------------------|
+| The track database: one `pp` click event per animal, with its serial number (e.g. `PP1003AA01`) in the event comment, belonging to the lander's binary store | [Localise Porpoises](localiseporpoises.qmd) |
+| `<lander folder>/multitrack/lander<N>_dep<D>_multitrack.mat` and the encounter figures (@sec-output) | A record of what the script did -- not needed downstream |
+
+The bearings are still relative to the lander; the heading, pitch and roll from [Locating the Landers](locatelanders.qmd) are applied during localisation. Click trains marked by hand in [Tracking Porpoises with PAMGuard](pamguard.qmd#sec-annotating) are in exactly the same format and can be used instead.

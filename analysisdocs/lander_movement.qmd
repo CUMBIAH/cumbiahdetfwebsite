@@ -18,3 +18,27 @@ workflow:
 image: ../images/cumbiah-icon.svg
 ---
 
+::: {.callout-warning}
+This tutorial is still to be written. The sections below are a draft of what it needs and produces.
+:::
+
+# Pre-requisites {#sec-prereq}
+
+## Data
+
+-   The SoundTrap ST640 sensor data (magnetometer and accelerometer) for each lander, processed by PAMGuard's SoundTrap SWV Sensor Import module as described in [Tracking Porpoises with PAMGuard](pamguard.qmd#orientation-data).
+-   *To be confirmed.*
+
+## Software
+
+*To be confirmed.*
+
+# Introduction
+
+Checking whether lander orientation has changed during a deployment and what to do if it does.
+
+# Outputs for next section {#sec-outputs}
+
+| Output | Used in |
+|--------------------|----------------------------------------------------|
+| *Draft:* a `.mat` file with a time series of each lander's heading, pitch and roll through the deployment, for landers that moved | [Locating the Landers](locatelanders.qmd) |
