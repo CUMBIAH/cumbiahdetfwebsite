@@ -25,9 +25,10 @@ lightbox: true
 fig-align: center
 ---
 
+{{< video https://youtu.be/XrXJVqzPRjM >}}
+
 ::: {.callout-note appearance="simple"}
-|  |  |
-|---|---|
+| | |
 | **MATLAB library** | [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat) |
 | **Script used** | `track_porpoises/cumbiah_multitrack.m` |
 | **PAMGuard version** | 2.02.18+ (viewer mode) |
