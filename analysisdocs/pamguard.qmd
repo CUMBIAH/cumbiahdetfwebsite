@@ -26,6 +26,18 @@ workflow:
         **vessel GPS track** of the boat during the calibration, as a `.mat` file holding
         a table `gpsdata` with columns `time` (datetime), `latitude` and `longitude`.
         The lander's drop location and start time come from the data management struct.
+    - to: localiseporpoises
+      joins: multitrack
+      label: "Or mark click trains by hand"
+      icon: pamguard
+      dashed: true
+      details: >-
+        An alternative to Automatic Porpoise Bearing Tracks. Click trains can be
+        marked out by hand in PAMGuard viewer mode, as described in *Annotating
+        clicks* in this tutorial. The result is in exactly the same format: one
+        `pp` click event per animal in the PAMGuard database, so localisation
+        reads manually marked and automatically tracked click trains in the same
+        way.
 author: "Jamie Macaulay"
 image: ../images/pamguard/image45.png
 toc: true

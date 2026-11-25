@@ -39,9 +39,64 @@
                cx: left + r.width / 2, cy: top + r.height / 2 };
     };
 
-    for (const e of edges) {
-      const a = rectOf(e.from), b = rectOf(e.to);
-      if (!a || !b) continue;
+    // Labels drawn so far, by "from>to", so a later arrow can join one.
+    const drawn = {};
+
+    const makeLabel = (e, label) => {
+      if (!e.label && !e.icon) return null;
+      const lab = document.createElement("button");
+      lab.type = "button";
+      lab.className = `workflow-label is-${label.place}` + (e.dashed ? " is-dashed" : "");
+      lab.style.left = `${label.x}px`;
+      lab.style.top = `${label.y}px`;
+      if (label.width) lab.style.maxWidth = `${Math.max(label.width, 96)}px`;
+      lab.innerHTML = iconHtml(e.icon) + `<span>${e.label}</span>`;
+      lab.setAttribute("aria-haspopup", "dialog");
+      lab.setAttribute("aria-label", `${e.label}: ${e.fromTitle} to ${e.toTitle}. Show details`);
+      lab.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        togglePopover(root, lab, e);
+      });
+      labels.appendChild(lab);
+      return lab;
+    };
+
+    const addPath = (pts, dashed) => {
+      const path = document.createElementNS(SVGNS, "polyline");
+      path.setAttribute("points", pts.map((p) => p.join(",")).join(" "));
+      path.setAttribute("marker-end", "url(#wf-head)");
+      if (dashed) path.setAttribute("class", "is-dashed");
+      svg.appendChild(path);
+    };
+
+    // Arrows between cards first, then arrows that join another arrow.
+    const ordered = edges.filter((e) => !e.joins).concat(edges.filter((e) => e.joins));
+
+    for (const e of ordered) {
+      const a = rectOf(e.from);
+      if (!a) continue;
+
+      if (e.joins) {
+        // An arrow into another arrow's label: out of the side of the source
+        // card (below its own row arrow), across to the label, then down or up
+        // onto it.
+        const target = drawn[`${e.joins}>${e.to}`];
+        if (!target) continue;
+        const r = target.getBoundingClientRect();
+        const tx = r.left - box.left + r.width / 2;
+        const below = r.top - box.top > a.cy;
+        const ty = below ? r.top - box.top - GAP / 2 : r.bottom - box.top + GAP / 2;
+        const dirX = tx > a.cx ? 1 : -1;
+        const x1 = dirX > 0 ? a.right + GAP : a.left - GAP;
+        const y0 = Math.min(a.cy + 60, a.bottom - 24);
+        addPath([[x1, y0], [tx, y0], [tx, ty]], e.dashed);
+        makeLabel(e, { x: tx, y: (y0 + a.bottom) / 2 + 8, place: "on",
+                       width: 2 * Math.abs(tx - x1) });
+        continue;
+      }
+
+      const b = rectOf(e.to);
+      if (!b) continue;
 
       let pts, label;
       const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
@@ -72,27 +127,9 @@
         label = { x: (x1 + b.cx) / 2, y: a.cy - 6, place: "above", width: Math.abs(b.cx - x1) };
       }
 
-      const path = document.createElementNS(SVGNS, "polyline");
-      path.setAttribute("points", pts.map((p) => p.join(",")).join(" "));
-      path.setAttribute("marker-end", "url(#wf-head)");
-      svg.appendChild(path);
-
-      if (e.label || e.icon) {
-        const lab = document.createElement("button");
-        lab.type = "button";
-        lab.className = `workflow-label is-${label.place}`;
-        lab.style.left = `${label.x}px`;
-        lab.style.top = `${label.y}px`;
-        if (label.width) lab.style.maxWidth = `${Math.max(label.width, 96)}px`;
-        lab.innerHTML = iconHtml(e.icon) + `<span>${e.label}</span>`;
-        lab.setAttribute("aria-haspopup", "dialog");
-        lab.setAttribute("aria-label", `${e.label}: ${e.fromTitle} to ${e.toTitle}. Show details`);
-        lab.addEventListener("click", (ev) => {
-          ev.stopPropagation();
-          togglePopover(root, lab, e);
-        });
-        labels.appendChild(lab);
-      }
+      addPath(pts, e.dashed);
+      const lab = makeLabel(e, label);
+      if (lab) drawn[`${e.from}>${e.to}`] = lab;
     }
   }
 
