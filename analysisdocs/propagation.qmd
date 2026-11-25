@@ -40,14 +40,14 @@ fig-align: center
 ## Data
 
 - The lander array file from [Locating the Landers](locatelanders.qmd), `lander_array_locations_dep<D>.mat`, for the position of the array and the depth of the landers.
-- One or more sound speed profiles taken at or near the array -- ideally during the deployment.
+- One or more sound speed profiles taken at or near the array - ideally during the deployment or modelled based on know conditions.
 
 ## Software
 
 | Requirement | What it is needed for |
-|----------------------|--------------------------------------------------|
+|----------------------|-------------------------------------------------|
 | [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat), with the `propagation` folder | Converting profiles and making the lookup tables |
-| [AcTUP v2.2L](https://cmst.curtin.edu.au/products/underwater/) (Acoustic Toolbox User-interface and Post-processor, free from the Centre for Marine Science and Technology, Curtin University). The scripts look for it in `~/MATLAB-Drive/MATLAB/ACTUP`; if you put it somewhere else, pass its folder with the `'actup'` option | Ray tracing. Only its MATLAB BELLHOP files are used, so no compiled Fortran BELLHOP is needed. |
+| [AcTUP v2.2L](https://cmst.curtin.edu.au/products/underwater/) (Acoustic Toolbox User-interface and Post-processor, free from the Centre for Marine Science and Technology, Curtin University). The scripts look for it in `~/MATLAB-Drive/MATLAB/ACTUP`; if you put it somewhere else, pass its folder with the `'actup'` option | Ray tracing. |
 
 # Introduction
 
@@ -172,7 +172,7 @@ Three casts were taken within 0.5 km of the array: two on 25 June 2025 and one o
 In the example Danish data, no CTD cast was taken during deployment 1 (October 2024), the deployment of the example event used in the localisation tutorial. The closest profiles we have are from the following June and September. We assume that season is important and so use the September cast as the worst case; this is why modelling sound speed profiles is important for each group.
 :::
 
-# Other data:  {#sec-other}
+# Other data: {#sec-other}
 
 Each group will have it's own data format. If dealing with **temperature and salinity but no sound speed** data, then it's easy to write a small converter with the [TEOS-10 GSW toolbox](https://www.teos-10.org/software.htm), which is valid for brackish water:
 
@@ -206,7 +206,7 @@ For one profile:
 P = make_propagation_table(svp, 'hdepth', 17);
 ```
 
-where `svp` is a sound speed profile struct from any source as described in [The sound speed profile format]. A CastAway `.csv` file name also works and is read with `read_castaway`. The options are:
+where `svp` is a sound speed profile struct from any source as described in [The sound speed profile format](#sec-svp-format). A CastAway `.csv` file name also works and is read with `read_castaway`. The options are:
 
 | Option | Default | Description |
 |------------------------|------------------------|------------------------|
@@ -346,5 +346,5 @@ Within about 100 m of the array the two sets of tracks mostly agree in depth to 
 # Outputs for next section {#sec-outputs}
 
 | Output | Used in |
-|----------------------|--------------------------------------------------|
+|----------------------|-------------------------------------------------|
 | `<country superfolder>/propagation/propagation_tables.mat`: the struct array `propagation`, one lookup table per sound speed profile (time period), giving the refracted arrival slant angle and travel time for every porpoise range and depth. The fields are listed in @sec-output. | [Localise Porpoises](localiseporpoises.qmd), passed as `'propagation'` (@sec-localise) |
