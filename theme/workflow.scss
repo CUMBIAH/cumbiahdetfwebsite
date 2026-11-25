@@ -52,6 +52,53 @@
   }
 }
 
+// The final project goal gets the CUMBIAH orange and a badge.
+.workflow .workflow-node.is-goal .quarto-grid-item.card {
+  border: 2px solid $secondary;
+  box-shadow: 0 0 0 4px rgba($secondary, 0.15), 0 0.35rem 1rem rgba($secondary, 0.2);
+
+  &:hover {
+    border-color: $secondary;
+    box-shadow: 0 0 0 4px rgba($secondary, 0.25), 0 0.5rem 1.25rem rgba($secondary, 0.3);
+  }
+}
+
+// The first tutorial gets a green "Start here" badge.
+$workflow-start: #2e8b57;
+
+.workflow .workflow-node.is-start .quarto-grid-item.card {
+  border: 2px solid $workflow-start;
+  box-shadow: 0 0 0 4px rgba($workflow-start, 0.15), 0 0.35rem 1rem rgba($workflow-start, 0.2);
+
+  &:hover {
+    border-color: $workflow-start;
+    box-shadow: 0 0 0 4px rgba($workflow-start, 0.25), 0 0.5rem 1.25rem rgba($workflow-start, 0.3);
+  }
+}
+
+.workflow-start-badge {
+  background-color: $workflow-start !important;
+}
+
+.workflow-badge {
+  position: absolute;
+  // Inside the top-right corner of the card, clear of any arrow coming in.
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 2;
+  box-shadow: 0 0.1rem 0.3rem rgba(0, 0, 0, 0.2);
+  padding: 0.15rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #ffffff;
+  background-color: $secondary;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
 .workflow-arrows {
   position: absolute;
   inset: 0;
@@ -65,6 +112,10 @@
     stroke-width: 2.25;
     stroke-linecap: round;
     stroke-linejoin: round;
+
+    &.is-dashed {
+      stroke-dasharray: 6 5;
+    }
   }
 }
 
@@ -166,6 +217,10 @@
   &:focus-visible {
     opacity: 1;
   }
+}
+
+.workflow-label.is-dashed {
+  border-style: dashed;
 }
 
 .workflow-label.is-above {

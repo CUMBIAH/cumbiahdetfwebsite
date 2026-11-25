@@ -1,7 +1,7 @@
 ---
 title: "Localise Porpoises"
 description: "Placeholder page for porpoise localisation analyses."
-order: 5
+order: 6
 workflow:
   row: 2
   col: 2
@@ -15,3 +15,29 @@ workflow:
         location errors, saved as `.mat` files.
 image: ../images/cumbiah-icon.svg
 ---
+
+::: {.callout-warning}
+This tutorial is still to be written. The sections below are a draft of what it needs and produces.
+:::
+
+# Pre-requisites {#sec-prereq}
+
+## Data
+
+-   The lander locations and orientations, `lander_array_locations_dep<N>.mat`, from [Locating the Landers](locatelanders.qmd).
+-   Click trains from single animals: the checked `pp` events in the track database from [Automatic Porpoise Bearing Tracks](multitrack.qmd), or click trains marked by hand in [Tracking Porpoises with PAMGuard](pamguard.qmd#sec-annotating). Both are in the same format.
+-   *Optional:* the propagation lookup tables, `propagation_tables.mat`, from [Propagation](propagation.qmd), to allow for refraction.
+
+## Software
+
+*To be confirmed.*
+
+# Introduction
+
+Placeholder page for porpoise localisation analyses.
+
+# Outputs for next section {#sec-outputs}
+
+| Output | Used in |
+|--------------------|----------------------------------------------------|
+| *Draft:* `.mat` files of geo-referenced 3D porpoise dive tracks (latitude, longitude and depth over time), one track per animal with location errors | [Determining distance to CPODs](CPOD_det_dist.qmd) |

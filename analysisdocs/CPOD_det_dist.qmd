@@ -1,9 +1,37 @@
 ---
 title: "Determining distance to CPODs"
 description: "Bring it all together and creating a table of distances to CPOD detections"
-order: 7
+order: 8
 workflow:
   row: 3
   col: 2
+  goal: true
 image: ../images/cumbiah-icon.svg
 ---
+
+::: {.callout-warning}
+This tutorial is still to be written. The sections below are a draft of what it needs and produces.
+:::
+
+# Pre-requisites {#sec-prereq}
+
+## Data
+
+-   The 3D porpoise dive tracks from [Localise Porpoises](localiseporpoises.qmd).
+-   The time aligned CPOD detections from [Time alignement](time_align.qmd).
+
+## Software
+
+*To be confirmed.*
+
+# Introduction
+
+Bring it all together and create a table of distances to CPOD detections.
+
+# Outputs for next section {#sec-outputs}
+
+This is the final step of the workflow and the goal of the project.
+
+| Output | Used in |
+|--------------------|----------------------------------------------------|
+| *Draft:* a table of the distance from each CPOD to each localised porpoise over time, and whether the CPOD detected it | The detection function analysis |

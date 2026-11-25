@@ -7,11 +7,16 @@
 //   workflow:
 //     row: 2
 //     col: 1
+//     goal: true                  # optional: highlight as the project goal
+//     start: true                 # optional: highlight as the place to start
 //     outputs:
 //       - to: multitrack          # file name of the target document, no .qmd
 //         label: "PAMGuard data"  # text shown on the arrow
 //         icon: pamguard          # optional: matlab (.mat files) or pamguard,
 //                                 # any images/icons/<name>.png
+//         joins: multitrack       # optional: point at the label of the arrow
+//                                 # from this document to `to` instead
+//         dashed: true            # optional: dashed arrow, e.g. an alternative route
 //         details: >-             # optional: text for the popup shown when the
 //           What this data is...  # label is clicked; **bold**, *italic* and
 //                                 # `code` are allowed
@@ -41,6 +46,7 @@ const edges = [];
 for (const item of items) {
   for (const out of ((item.workflow || {}).outputs || [])) {
     edges.push({ from: stem(item), to: out.to, label: out.label || "", icon: out.icon || "",
+                 joins: out.joins || "", dashed: !!out.dashed,
                  details: md(out.details),
                  fromTitle: item.title, toTitle: titles[out.to] || out.to,
                  fromHref: item.outputHref, toHref: hrefs[out.to] || "" });
@@ -62,7 +68,9 @@ for (const item of items) {
 %>
 
 ```{=html}
-<div class="workflow-node" data-wf-id="<%- stem(item) %>" style="<%- pos %>">
+<div class="workflow-node<%- wf.goal ? ' is-goal' : '' %><%- wf.start ? ' is-start' : '' %>" data-wf-id="<%- stem(item) %>" style="<%- pos %>">
+<% if (wf.start) { %><span class="workflow-badge workflow-start-badge">&#9654; Start here</span><% } %>
+<% if (wf.goal) { %><span class="workflow-badge workflow-goal-badge">&#9733; Project goal</span><% } %>
 <a href="<%- item.path %>" class="quarto-grid-link">
 <div class="quarto-grid-item card h-100 card-left">
 ```
