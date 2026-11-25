@@ -5,6 +5,7 @@ order: 1
 workflow:
   row: 1
   col: 1
+  start: true
   outputs:
     - to: multitrack
       label: "PAMGuard data"
