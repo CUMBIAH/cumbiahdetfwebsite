@@ -95,6 +95,10 @@
     stroke-width: 2.25;
     stroke-linecap: round;
     stroke-linejoin: round;
+
+    &.is-dashed {
+      stroke-dasharray: 6 5;
+    }
   }
 }
 
@@ -196,6 +200,10 @@
   &:focus-visible {
     opacity: 1;
   }
+}
+
+.workflow-label.is-dashed {
+  border-style: dashed;
 }
 
 .workflow-label.is-above {
