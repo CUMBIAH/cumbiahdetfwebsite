@@ -1,0 +1,22 @@
+---
+title: "Propagation"
+description: "Placeholder page for modelling sound propagation and refraction to correct porpoise slant angles."
+format: html
+order: 5
+workflow:
+  row: 2
+  col: 3
+  outputs:
+    - to: localiseporpoises
+      label: "Propagation lookup tables"
+      icon: matlab
+      details: >-
+        *Draft, to be confirmed.* A `.mat` file containing a struct of propagation
+        lookup tables, one for each time period of the deployment (for example
+        each sound speed profile). Each table gives the refracted arrival slant
+        angle and travel time from ray tracing, as a function of the porpoise's
+        range and depth, so localisation can account for refraction.
+image: ../images/cumbiah-icon.svg
+---
+
+Placeholder page for sound propagation modelling.

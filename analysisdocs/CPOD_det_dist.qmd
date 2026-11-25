@@ -1,7 +1,7 @@
 ---
 title: "Determining distance to CPODs"
 description: "Bring it all together and creating a table of distances to CPOD detections"
-order: 7
+order: 8
 workflow:
   row: 3
   col: 2
