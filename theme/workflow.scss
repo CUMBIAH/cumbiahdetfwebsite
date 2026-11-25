@@ -63,7 +63,24 @@
   }
 }
 
-.workflow-goal-badge {
+// The first tutorial gets a green "Start here" badge.
+$workflow-start: #2e8b57;
+
+.workflow .workflow-node.is-start .quarto-grid-item.card {
+  border: 2px solid $workflow-start;
+  box-shadow: 0 0 0 4px rgba($workflow-start, 0.15), 0 0.35rem 1rem rgba($workflow-start, 0.2);
+
+  &:hover {
+    border-color: $workflow-start;
+    box-shadow: 0 0 0 4px rgba($workflow-start, 0.25), 0 0.5rem 1.25rem rgba($workflow-start, 0.3);
+  }
+}
+
+.workflow-start-badge {
+  background-color: $workflow-start !important;
+}
+
+.workflow-badge {
   position: absolute;
   // Inside the top-right corner of the card, clear of any arrow coming in.
   top: 0.6rem;
