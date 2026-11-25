@@ -30,7 +30,7 @@ fig-align: center
 |------------------------------------|------------------------------------|
 | **MATLAB library** | [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat) |
 | **Scripts used** | `propagation/make_propagation_tables.m`, `propagation/make_propagation_table.m` |
-| **Ray tracer** | MATLAB port of BELLHOP in AcTUP v2.2L, in `~/MATLAB-Drive/MATLAB/ACTUP` |
+| **Ray tracer** | MATLAB port of BELLHOP in [AcTUP v2.2L](https://cmst.curtin.edu.au/products/underwater/) |
 | **Worked example** | Denmark, deployment 1 (Oct 24), SonTek CastAway CTD casts from June and September 2025 |
 | **Output** | `<country>/propagation/propagation_tables.mat`, struct array `propagation` |
 :::
@@ -47,7 +47,7 @@ fig-align: center
 | Requirement | What it is needed for |
 |----------------------|--------------------------------------------------|
 | [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat), with the `propagation` folder | Converting profiles and making the lookup tables |
-| **AcTUP v2.2L** in `~/MATLAB-Drive/MATLAB/ACTUP` (or pass its folder with the `'actup'` option) | Ray tracing. Only its MATLAB BELLHOP files are used, so no compiled Fortran BELLHOP is needed. |
+| [AcTUP v2.2L](https://cmst.curtin.edu.au/products/underwater/) (Acoustic Toolbox User-interface and Post-processor, free from the Centre for Marine Science and Technology, Curtin University). The scripts look for it in `~/MATLAB-Drive/MATLAB/ACTUP`; if you put it somewhere else, pass its folder with the `'actup'` option | Ray tracing. Only its MATLAB BELLHOP files are used, so no compiled Fortran BELLHOP is needed. |
 
 # Introduction
 
