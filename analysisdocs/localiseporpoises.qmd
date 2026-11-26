@@ -67,11 +67,10 @@ As in the other tutorials, each lander is described by the deployment record of 
 | Requirement | What it is needed for |
 |----------------------|--------------------------------------------------|
 | [`cumbiah_landers_mat`](https://github.com/CUMBIAH/cumbiah_landers_mat), with the `localise_porpoises` and `propagation` folders | The scripts, `localiseporpoises` and the plot functions in `localise_porpoises/plot` |
-| [soundnetloc_mat](https://github.com/Sound-Net/soundnetloc_mat) | `load_event_clicks` (reading the clicks of the tracks), `latLong2meters`, `getsuperfolder`, `getdefaultcols` |
+| [soundnetloc_mat](https://github.com/Sound-Net/soundnetloc_mat) | `load_event_clicks` (reading the clicks of the tracks), `read_pamguard_hydrophones`, `latLong2meters`, `getsuperfolder` and `getdefaultcols` in `utils`; `partice_filter_pam` and `trackstartloc_bounded` in `locate_animals/particle_filter_loc`; `associate_tracks` in `click_train_tracking`; `find_time_offset` in `clock` |
 | [PAMGuardMatlab](https://github.com/PAMGuard/PAMGuardMatlab) | Reading the clicks out of the PAMGuard binary store |
-| CIBBRiNA `soundtrap_4c` localisation code | `associate_tracks`, `find_time_offset`, `trackstartloc_bounded`, `read_pamguard_hydrophones` |
-| The particle filter (`MATLAB/localisation`) | `partice_filter_pam` |
 | MATLAB **Database Toolbox** | `sqlite`, used to read the tracks from the PAMGuard databases |
+| MATLAB **Statistics and Machine Learning Toolbox** | `normrnd` and `randsample`, used by the particle filter |
 
 # Introduction
 

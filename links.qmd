@@ -13,6 +13,7 @@ A collection of the software, code libraries and resources used throughout the a
 |--------------------------------|--------------------------------------------------------------------|
 | [CUMBIAH on GitHub](https://github.com/CUMBIAH) | The CUMBIAH organisation on GitHub, where project code and documentation are hosted. |
 | [cumbiah_landers_mat](https://github.com/CUMBIAH/cumbiah_landers_mat) | MATLAB library for working with the CUMBIAH hydrophone-cluster lander data. |
+| [soundnetloc_mat](https://github.com/Sound-Net/soundnetloc_mat) | MATLAB library of the Sound-Net localisation code: click train tracking and track association between devices, the grid search that locates and orients the landers, clock alignment, the particle filter used to localise porpoises, and readers for PAMGuard clicks and hydrophone arrays. |
 
 ## PAMGuard
 
@@ -22,6 +23,21 @@ A collection of the software, code libraries and resources used throughout the a
 | [PAMGuardMatlab](https://github.com/PAMGuard/PAMGuardMatlab) | MATLAB library for importing PAMGuard binary files and databases. |
 | [pypamguard](https://github.com/PAMGuard/pypamguard) | Python library for reading PAMGuard output. |
 | [PamBinaries](https://github.com/TaikiSan21/PamBinaries) | R library for reading PAMGuard binary files. |
+
+## Propagation and oceanography
+
+| Link | Description |
+|--------------------------------|--------------------------------------------------------------------|
+| [AcTUP v2.2L](https://cmst.curtin.edu.au/products/underwater/) | Acoustic Toolbox User-interface and Post-processor from the Centre for Marine Science and Technology, Curtin University. Its MATLAB port of the BELLHOP ray tracer makes the propagation lookup tables. |
+| [TEOS-10 GSW toolbox](https://www.teos-10.org/software.htm) | Seawater equations (sound speed from temperature, salinity and pressure), valid in brackish water. |
+
+## MATLAB toolboxes
+
+| Link | Description |
+|--------------------------------|--------------------------------------------------------------------|
+| [Database Toolbox](https://www.mathworks.com/products/database.html) | `sqlite`, used to read and write the PAMGuard databases. |
+| [Mapping Toolbox](https://www.mathworks.com/products/mapping.html) | Reading and cropping the bathymetry in `locate_array.m`. |
+| [Statistics and Machine Learning Toolbox](https://www.mathworks.com/products/statistics.html) | `normrnd` and `randsample`, used by the particle filter that localises porpoises. |
 
 ## Data tools
 
