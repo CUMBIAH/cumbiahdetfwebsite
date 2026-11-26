@@ -38,15 +38,16 @@ fig-align: center
 
 <!--
   YOUTUBE VIDEO PLACEHOLDER
-  Replace the callout below with the Quarto video shortcode and the YouTube link
-  of test_20241020_154600_movie.mp4, written the same way as on the other
+  This is for the tutorial video (not the dive track movie, which is embedded
+  in @sec-movie). Replace the callout below with the Quarto video shortcode and
+  the YouTube link of the tutorial video, written the same way as on the other
   tutorial pages, e.g.  video https://www.youtube.com/watch?v=<VIDEO_ID>
   inside {{< and >}}.
 -->
 
 ::: {.callout-important}
 ## Video placeholder
-The movie of the worked example (@sec-movie) goes here once it is on YouTube.
+The tutorial video goes here once it is on YouTube. The movie of the worked example's dive tracks is in @sec-movie.
 :::
 
 # Pre-requisites {#sec-prereq}
@@ -301,7 +302,9 @@ Two plots help to judge whether a track is believable.
 
 ## The movie {#sec-movie}
 
-With `makemovie = true` the script also makes `test_20241020_154600_movie.mp4`: the tracks building up through the event, one frame a second at 10 frames a second, in a plan view beside the two side views. The true bearings of the clicks each lander heard in the last 2 s (`bearingwindow`) are drawn out from the lander in the lander's colour, and the current position of the porpoise is a yellow star, so you can watch the bearings from the landers cross on the animal. The movie is at the top of this page.
+With `makemovie = true` the script also makes `test_20241020_154600_movie.mp4`: the tracks building up through the event, one frame a second at 10 frames a second, in a plan view beside the two side views. The true bearings of the clicks each lander heard in the last 2 s (`bearingwindow`) are drawn out from the lander in the lander's colour, and the current position of the porpoise is a yellow star, so you can watch the bearings from the landers cross on the animal. The movie is below.
+
+{{< video https://www.youtube.com/watch?v=KGYFMncz_WY title="Porpoise dive tracks around the Danish lander array, 20 October 2024" aspect-ratio="16x9" >}}
 
 # What gets saved {#sec-output}
 
