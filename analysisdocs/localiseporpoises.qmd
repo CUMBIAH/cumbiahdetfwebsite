@@ -110,7 +110,7 @@ This tutorial covers:
 
 ## Tracks and encounters
 
-The tracks are read back from each lander's porpoise database, so anything changed by hand in the PAMGuard viewer is used. Tracks during a boat calibration trial (a `bc` event in any of the landers' databases, plus `boatpad` minutes either side) are the boat, not porpoises, and are left out.
+The tracks are read back from each lander's porpoise database, so anything changed by hand in the PAMGuard viewer is used. Every `pp` event that starts inside the lander's deployment is a track. Tracks during a boat calibration trial (a `bc` event in any of the landers' databases, plus `boatpad` minutes either side) are the boat, not porpoises, and are left out.
 
 The bearings of each click are turned from the lander's frame into true bearings with the heading, pitch and roll of [Locating the Landers](locatelanders.qmd). The landers are on the seabed so nothing real arrives from well below them: clicks with a true slant angle below `minslant` (−10° by default) are reflections or bad time delays and are dropped.
 
