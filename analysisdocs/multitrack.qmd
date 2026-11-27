@@ -11,8 +11,7 @@ workflow:
       icon: pamguard
       details: >-
         The track database written by `cumbiah_multitrack.m` and then checked and
-        tidied in PAMGuard viewer mode: one `pp` event per animal, with its serial
-        number (e.g. `PP1003AA01`) in the event comment. Bearings are still relative to
+        tidied in PAMGuard viewer mode: one `pp` event per animal. Bearings are still relative to
         the lander; the heading, pitch and roll are applied during localisation.
         `lander<N>_dep<D>_multitrack.mat` records the settings and encounters, but the
         edited database is the version to use.
@@ -94,7 +93,7 @@ To localise a porpoise we need to know which clicks on a lander came from the sa
 1.  loads every porpoise click from the PAMGuard binary files;
 2.  cuts the deployment into **encounters** -- periods with porpoises around, separated by periods with none;
 3.  groups the clicks of each encounter into **bearing tracks**, one per animal;
-4.  writes every track as a `pp` event into a PAMGuard database, with a **serial number** in the event comment.
+4.  writes every track as a `pp` event into a PAMGuard database.
 
 The tracks are then ordinary PAMGuard click events. You open the database in viewer mode, look at what the algorithm did, and fix what it got wrong -- which is a _alot_ faster than marking everything out from scratch.
 
@@ -102,7 +101,6 @@ This tutorial covers:
 
 -   how the algorithm works (@sec-how-works);
 -   running the script and its settings (@sec-running);
--   how the serial numbers of the events work (@sec-serial);
 -   the files the script produces and how to read the diagnostic figure (@sec-output);
 -   opening the tracks in PAMGuard and tweaking them (@sec-pamguard);
 -   re-running the script without losing your edits (@sec-rerun).
@@ -162,7 +160,7 @@ Each track is turned into a smooth curve of bearing against time through its fra
 
 Clicks that are not near any track are left unassigned. They are the grey points in the bottom panel of @fig-tracks-simple, and are a mixture of noise, echoes that slipped through, badly measured bearings and animals too faint to follow. Echoes are never assigned to a track.
 
-Each track that has clicks then becomes one event, and gets its serial number (@sec-serial).
+Each track that has clicks then becomes one `pp` event.
 
 ::: {.callout-tip}
 ## What this means when you check the tracks
@@ -224,8 +222,8 @@ Wrote 4 events
 | `trackdb` | The database the tracks are written to. Never chosen for you: if it is empty or does not exist, the script stops. |
 | `writedb` | `false` runs the tracking and saves the figures and `.mat` file but leaves the database alone. Use this while you are experimenting with settings. |
 | `overwrite` | `false` stops the script before it does any work if `trackdb` already holds tracks of this deployment. `true` **deletes** them and writes new ones -- see @sec-rerun. |
-| `encounters` | Run only some encounters, e.g. `3:5`. The numbers are the last three digits of the encounter code (`PP1003` is encounter 3). |
-| `tlims` | Restrict the run to a period of the deployment. Leave this as `[]` unless you have a good reason -- see @sec-serial-stable. |
+| `encounters` | Run only some encounters, e.g. `3:5`. Encounters are numbered in time order, as in the names of the figures (`PP1003` is encounter 3). |
+| `tlims` | Restrict the run to a period of the deployment. Leave this as `[]` unless you have a good reason -- see @sec-rerun. |
 
 ## Encounter settings
 
@@ -264,84 +262,17 @@ The full list, with defaults, is in `help track_bearings`.
 The click bearings are left relative to the lander. The lander sits still on the seabed, so its orientation makes no difference to which clicks belong together. The heading, pitch and roll from [Locating the Landers](locatelanders.qmd) are applied later, when the tracks are localised.
 :::
 
-# How the serial numbers work {#sec-serial}
-
-Every track is written to the database as a click event of type `pp`, and its serial number -- the *track code* -- is stored in the event's **comment**. A code looks like this:
-
-```
-PP1003AB01
-```
-
-and reads as follows.
-
-| Part | Example | Meaning |
-|-----------|-----------|--------------------------------------------------|
-| Species | `PP` | Harbour porpoise (*Phocoena phocoena*) |
-| Deployment | `1` | Deployment number: 1, 2 or 3 |
-| Encounter | `003` | Encounter number within the deployment, in time order |
-| Track | `AB` | Track within the encounter, lettered in time order |
-| Fragment | `01` | Always `01` for the CUMBIAH landers |
-
-So `PP1003AB01` is **deployment 1, encounter 3, the second track**.
-
-## Deployment and encounter: the four digits
-
-A lander has a single database and a single binary store for all of its deployments. The deployment therefore has to be part of the code, or encounter 3 of deployment 1 and encounter 3 of deployment 2 would have the same serial number in the same database.
-
-The four digits are simply `1000 × deployment + encounter`:
-
-| Deployment | Encounter codes |
-|-----------------|------------------------------|
-| 1 (Oct 24) | `PP1001`, `PP1002`, ... `PP1999` |
-| 2 (Feb 25) | `PP2001`, `PP2002`, ... `PP2999` |
-| 3 (June 25) | `PP3001`, `PP3002`, ... `PP3999` |
-
-Encounters are numbered **in time order**, starting at 1 for each deployment. There is room for 999 encounters in a deployment; if there are more, the script stops and asks you to raise `minpermin` or `minclicks`.
-
-The first six characters, e.g. `PP1003`, are the *encounter code*. Every track in the encounter shares it, and it is also what appears in the names of the figures (@sec-output).
-
-## Track: the two letters
-
-Within an encounter the tracks are sorted by start time and lettered `AA`, `AB`, `AC` ... `AZ`, `BA`, `BB` and so on, which gives room for 676 tracks in an encounter.
-
-| Track | 1st | 2nd | 3rd | ... | 26th | 27th | 28th |
-|-------|-----|-----|-----|-----|------|------|------|
-| Letters | `AA` | `AB` | `AC` | ... | `AZ` | `BA` | `BB` |
-
-Occasionally a letter is skipped. A track that ended up with no clicks of its own is not written to the database, but it keeps its place in the order, so you may see `AA`, `AB`, `AD` with no `AC`. That is normal.
-
-The event **colour** in PAMGuard is set from the letters too (`AA` = colour 1, `AB` = colour 2 ...), so neighbouring tracks in an encounter are drawn in different colours.
-
-## Fragment: the last two digits
-
-The final `01` is there so that the CUMBIAH codes are the same length as those from other projects which use the same tracking code, where it has a meaning. For the landers it is always `01` and can be ignored.
-
-## Serial numbers are per lander {#sec-serial-landers}
-
-The codes are made separately for each lander. `PP1003AB01` on lander 1 and `PP1003AB01` on lander 2 are **not** the same animal, or even necessarily the same encounter -- lander 2 has its own encounters, numbered from its own clicks. Matching tracks between landers, which is what the [manual annotation standards](pamguard.qmd#manual-annotation-standards) ask for with a shared serial number, is a later step that is not automated yet.
-
-## Keeping the serial numbers stable {#sec-serial-stable}
-
-An encounter's number is just its position in the list of encounters the script found. Anything that changes that list changes the numbers:
-
--   **`tlims`**. Encounters are numbered within the period that is run. If you run the whole deployment once and then half of it, encounter 3 will not be the same encounter. Leave `tlims = []`.
--   **The encounter settings** (`minpermin`, `maxgap`, `minclicks`, `maxduration`, `encpad`), the click settings (`porptype`, `minamp`) and the boat calibration events all decide where encounters start and end.
-
-Settle these *before* anyone starts editing tracks in PAMGuard, and then leave them alone. The tracking settings in `trackargs` are different: they change the tracks inside an encounter, not the encounters themselves, so they can be adjusted and individual encounters re-run (@sec-rerun).
-
 # What the script produces {#sec-output}
 
 There are three outputs from the script
 
-**Events in the database.** One `pp` event per track in `trackdb`, with the track code in the comment. The `pp` event type is added to the database's lookup table if it is not already there, so that PAMGuard will show the events just like they were annotated by a person. 
+**Events in the database.** One `pp` event per track in `trackdb`. The script also puts a label in each event's comment so that it can find its own events if it is run again (@sec-rerun); you can ignore it. The `pp` event type is added to the database's lookup table if it is not already there, so that PAMGuard will show the events just like they were annotated by a person. 
 
-**A `.mat` file.** `<lander folder>/multitrack/lander<N>_dep<D>_multitrack.mat` holds a struct `mt` with the settings used and the struct array `mt.encounters`, which has for each encounter its code, time limits, number of clicks, and the tracks and track codes found. This is the record of what the script did, as opposed to the database, which is what you go on to edit.
+**A `.mat` file.** `<lander folder>/multitrack/lander<N>_dep<D>_multitrack.mat` holds a struct `mt` with the settings used and the struct array `mt.encounters`, which has for each encounter its time limits, number of clicks and the tracks found. This is the record of what the script did, as opposed to the database, which is what you go on to edit.
 
 **A figure for each encounter.** `lander<N>_dep<D>_PPnnnn_tracks.png`, in the same folder, shows the three stages of the tracking.
 
 ![The tracking figure for encounter `PP1003`. **Top:** every click (grey), clicks removed as echoes (red) and the fragments (black). **Middle:** the fragments joined into four tracks. **Bottom:** the clicks assigned to each track, in colour; grey clicks belong to no track.](../images/multitrack/tracks_PP1003.png){#fig-tracks-simple}
-
-The tracks in the figure are numbered in the order the tracker made them, which is usually but not always the order of the letters in the database. In @fig-tracks-simple, tracks 1 to 4 became `PP1003AA01`, `PP1003AB01`, `PP1003AC01` and `PP1003AD01`.
 
 It is worth flicking through these figures before opening PAMGuard. A quiet encounter like @fig-tracks-simple needs little or no attention. A busy one does:
 
@@ -367,11 +298,11 @@ Now navigate to an encounter. The start times are printed by the script and are 
 
 ![Encounter `PP1007` in the bearing time display. Each automatic track is a different colour; compare with @fig-tracks-simple.](../images/multitrack/tracks.png){#fig-pg-tracks}
 
-## Finding a track by its serial number
+## The event list
 
-The event list shows every event in the database with its type and comment, so the track codes can be read straight off it, and it is the place to edit or delete an event.
+The event list shows every event in the database with its type, and it is the place to edit or delete an event.
 
-![The event list. The `pp` events written by MATLAB have their track code in the comment column.](../images/multitrack/eventlist.png){#fig-pg-eventlist}
+![The event list, with the `pp` events written by MATLAB.](../images/multitrack/eventlist.png){#fig-pg-eventlist}
 
 Right clicking on a coloured click in the bearing time display also shows which event the click belongs to.
 
@@ -383,29 +314,14 @@ With the MATLAB figure of the encounter open beside PAMGuard, work through the e
 |------------------------|-----------------------------------------------|
 | Good clicks left out of a track (black or uncoloured clicks lying on the line of a track) | Select them with the area tool and ***Label Clicks*** (*Ctrl+L*), then choose the **existing** event from the list rather than making a new one |
 | Clicks in a track that do not belong (echoes, scatter away from the line) | Select them and remove them from the event |
-| One animal split into two or more tracks | Select the clicks of the later track and label them into the earlier event. Keep the earlier code |
-| Two animals in one track | Select the clicks of one animal and label them as a **new** event, type `pp`, with a new code (see below) |
+| One animal split into two or more tracks | Select the clicks of the later track and label them into the earlier event |
+| Two animals in one track | Select the clicks of one animal and label them as a **new** event, type `pp` |
 | A track which is not a porpoise (boat noise, an echosounder, sparse noise) | Delete the event, or change its type if the sound is worth keeping a record of |
-| An animal the algorithm missed altogether | Mark it out as a **new** `pp` event with a new code |
+| An animal the algorithm missed altogether | Mark it out as a **new** `pp` event |
 
 ![Adding missed clicks to an automatic track: draw around them, ***Label Clicks***, and choose the existing event.](../images/multitrack/addclicks.png){#fig-pg-addclicks}
 
 The aim is the same as for manual annotation: a clean, single line of clicks per animal, with echoes and non-directional clicks removed. As with the calibration transients, do not agonise over single clicks.
-
-## Serial numbers when you edit
-
-The comment is just text, and PAMGuard will let you type anything into it, so a little discipline is needed to keep the codes meaningful.
-
--   **Leave the code of an event alone when you add or remove clicks.** The code identifies the track, not its exact contents.
--   **When you join two tracks, keep the earlier code** and let the other one go. The gap in the letters does not matter.
--   **A new event needs a new code.** Use the encounter code of the encounter it is in and the next unused letters. If the encounter's last track is `PP1003AD01`, a new track is `PP1003AE01`. Do not re-use the letters of a track you deleted or merged.
--   **Always set the event type to `pp`** for a new porpoise track.
--   **Keep the format exactly**: two capital letters, four digits, two capital letters, `01`, with no spaces. The later analysis reads the code from the comment.
-
-
-::: {.callout-note}
-These rules for edited events are a suggested convention for CUMBIAH rather than something the software enforces. The important thing is that everyone annotating does the same.
-:::
 
 When you have finished an encounter it should look something like this, with one colour per animal.
 
@@ -425,10 +341,12 @@ Once tracks have been edited in PAMGuard, the database holds work that the scrip
 
 What `overwrite = true` deletes depends on `encounters`:
 
--   with `encounters = []` (all of them), every event whose comment starts with `PP<deployment>` is deleted -- the whole deployment, because the encounter numbers may have changed;
--   with a list such as `encounters = 3:5`, only the events of those encounters (`PP1003...`, `PP1004...`, `PP1005...`) are deleted and re-written. The other encounters, and other deployments, are not touched.
+-   with `encounters = []` (all of them), every automatic track of the deployment is deleted;
+-   with a list such as `encounters = 3:5`, only the tracks of those encounters are deleted and re-written. The other encounters, and other deployments, are not touched.
 
-Events are matched by their comment, so a new event you made by hand with a code such as `PP1003AE01` is deleted along with the automatic ones. Events of other types, such as `bc`, and events without a `PP...` code in the comment are never deleted.
+The script finds its own tracks by the label it wrote in the comment, so clicks you added to an automatic track are lost with it, but events you made from scratch and events of other types, such as `bc`, are never deleted.
+
+Encounters are numbered by their position in time order, so re-running single encounters only works if the encounters stay the same. Once editing has started, leave `tlims`, the encounter settings (`minpermin`, `maxgap`, `minclicks`, `maxduration`, `encpad`) and the click settings (`porptype`, `minamp`) alone. The tracking settings in `trackargs` only change the tracks inside an encounter, so they can be adjusted freely.
 
 ::: {.callout-warning}
 ## Set `overwrite = false` once editing has started
@@ -450,7 +368,7 @@ A sensible way of working is therefore:
 | *Set trackdb to the PAMGuard database...* or *The database ... does not exist* | `trackdb` is empty or the path is wrong. The script will not create a database. |
 | *N deployment D tracks are already in ...* | The database already has tracks and `overwrite = false`. This is the safety check doing its job -- see @sec-rerun. |
 | *No porpoise clicks (type 1) between ...* | Wrong `porptype` for your click classifier, the clicks have not been classified, or `getlanderpaths` is pointing at the wrong binary store. |
-| *N encounters, but the track codes only have room for 999* | Too many encounters. Raise `minpermin` or `minclicks`. |
+| *N encounters, but the track codes only have room for 999* | Too many encounters in the deployment. Raise `minpermin` or `minclicks`. |
 | The boat calibration appears as an encounter | The `bc` events are missing from the database, or have a different event type from `boattypes`. |
 | The tracks do not show in PAMGuard | Check you opened `trackdb` and not the original database, and that clicks are coloured by event. |
 | The database is locked, or edits vanish | PAMGuard and MATLAB had the database open at the same time. |
@@ -462,7 +380,7 @@ Once the tracks have been checked and tidied in PAMGuard (@sec-pamguard), the **
 
 | Output | Used in |
 |--------------------|----------------------------------------------------|
-| The track database: one `pp` click event per animal, with its serial number (e.g. `PP1003AA01`) in the event comment, belonging to the lander's binary store | [Localise Porpoises](localiseporpoises.qmd) |
+| The track database: one `pp` click event per animal, belonging to the lander's binary store | [Localise Porpoises](localiseporpoises.qmd) |
 | `<lander folder>/multitrack/lander<N>_dep<D>_multitrack.mat` and the encounter figures (@sec-output) | A record of what the script did -- not needed downstream |
 
 The bearings are still relative to the lander; the heading, pitch and roll from [Locating the Landers](locatelanders.qmd) are applied during localisation. Click trains marked by hand in [Tracking Porpoises with PAMGuard](pamguard.qmd#sec-annotating) are in exactly the same format and can be used instead.

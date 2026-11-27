@@ -363,13 +363,13 @@ Note: if you recalculate the click bearings automatically all manual time delay 
 
 ## Manual annotation standards
 
-Because we are localising and click-train algorithms are currently not as well developed as the bioacoustics community would like, it will be necessary to take a semi-automated approach to processing data i.e. we will need to manually annotate all porpoise click trains using the tools described in the previous sections. It is important to have standard for doing this, especially as we need to match click trains between landers i.e. we have to have a consistent way defining what an event is and labelling events correctly between landers.
+Because we are localising and click-train algorithms are currently not as well developed as the bioacoustics community would like, it will be necessary to take a semi-automated approach to processing data i.e. we will need to manually annotate all porpoise click trains using the tools described in the previous sections. It is important to have a consistent way of defining what an event is:
 
-Some standards we would recommend
+- Mark one event per animal, with the event type `pp`.
 
-- Start a new event if there have bene no porpoise clicks within a track for 30 seconds.
+- Start a new event if there have been no porpoise clicks within a track for 30 seconds.
 
-- Give each event a serial number in the comment section. For events which match on different arrays, set the same serial number.
+There is no need to number the events or match them between landers by hand -- [Localise Porpoises](localiseporpoises.qmd) matches the click trains of the different landers itself.
 
 # Exporting bearings {#sec-exporting}
 
