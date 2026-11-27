@@ -57,7 +57,7 @@ The tutorial video goes here once it is on YouTube. The movie of the worked exam
 From the earlier tutorials you need, for every lander of the array:
 
 -   The lander locations and orientations, `lander_array_locations_dep<N>.mat`, and the seabed around the array, `bathymetry/lander_array_bathymetry_dep<N>.mat`, from [Locating the Landers](locatelanders.qmd).
--   Click trains from single animals in each lander's porpoise database (`..._porpoise.sqlite3`): the checked `pp` events from [Automatic Porpoise Bearing Tracks](multitrack.qmd), or click trains marked by hand in [Tracking Porpoises with PAMGuard](pamguard.qmd#sec-annotating). Both are in the same format. Only events whose comment is a track code of the deployment (`PP<deployment>nnnLLff`, e.g. `PP1003AB01`) are read.
+-   Click trains from single animals in each lander's porpoise database (`..._porpoise.sqlite3`): the checked `pp` events from [Automatic Porpoise Bearing Tracks](multitrack.qmd), or click trains marked by hand in [Tracking Porpoises with PAMGuard](pamguard.qmd#sec-annotating). Both are in the same format: one `pp` event per animal.
 -   The boat calibration trials marked as `bc` events ([Locating the Landers](locatelanders.qmd#sec-pamguard)), so the cavitation transients are not mistaken for porpoises.
 -   *Optional:* the propagation lookup tables, `propagation/propagation_tables.mat`, from [Propagation](propagation.qmd), to allow for refraction. Without them sound is assumed to travel in straight lines at a single sound speed.
 
@@ -79,7 +79,7 @@ By this point in the workflow every lander has been located and oriented on the 
 
 That sounds simple, but there are three problems to solve first:
 
-1.  **Which tracks are the same animal?** The click trains of each lander were made independently. `PP1003AB01` on lander 1 has nothing to do with `PP1003AB01` on lander 2, so the tracks have to be *matched* between the landers.
+1.  **Which tracks are the same animal?** The click trains of each lander were made independently, so the tracks have to be *matched* between the landers.
 2.  **The clocks do not agree.** Each lander has its own clock, and they drift apart by about a second a week. A second is a long time for a porpoise clicking ten times a second, so the clocks have to be lined up before the clicks of the two landers can be paired.
 3.  **Porpoise bearings are noisy.** Porpoise clicks are narrow band, high frequency and directional, so single click bearings scatter by several degrees. Crossing two noisy bearings click by click gives very scattered positions. Instead a **particle filter** follows each animal through time with a simple model of how a porpoise can move, which smooths out the noise and gives an estimate of the error at every point.
 
@@ -110,7 +110,7 @@ This tutorial covers:
 
 ## Tracks and encounters
 
-The tracks are read back from each lander's porpoise database, so anything changed by hand in the PAMGuard viewer is used. Tracks during a boat calibration trial (a `bc` event in any of the landers' databases, plus `boatpad` minutes either side) are the boat, not porpoises, and are left out.
+The tracks are read back from each lander's porpoise database, so anything changed by hand in the PAMGuard viewer is used. Every `pp` event that starts inside the lander's deployment is a track. Tracks during a boat calibration trial (a `bc` event in any of the landers' databases, plus `boatpad` minutes either side) are the boat, not porpoises, and are left out.
 
 The bearings of each click are turned from the lander's frame into true bearings with the heading, pitch and roll of [Locating the Landers](locatelanders.qmd). The landers are on the seabed so nothing real arrives from well below them: clicks with a true slant angle below `minslant` (−10° by default) are reflections or bad time delays and are dropped.
 
